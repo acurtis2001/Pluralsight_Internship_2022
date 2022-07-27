@@ -1,0 +1,840 @@
+---
+title: "Exploratory Data Analysis with Demand & Compensation Data"
+author: "Aubree Curtis, Data Analyst Intern"
+date: "June 28, 2022"
+output:
+  html_document:
+    pdf_document: null
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+  html_notebook: 
+    toc: yes
+  
+editor_options: 
+  chunk_output_type: inline
+---
+
+<style>
+.btn {
+    padding: 6px 9px 4px;
+    border-width: 1px 1px 1px 1px;
+    background: linear-gradient(#EF4F34, #EB0586);
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #fff;
+    border-radius: 4px;
+}
+btn-default {
+    color: #fff;
+    background-color: #fff;
+    border-color: #fff;
+    border-width: 1px 1px 1px 1px;
+    border-radius: 4px;
+}
+.btn-default:hover, .btn-default:focus, .btn-group.open .dropdown-toggle.btn-default {
+    background:linear-gradient(#EF4F34, #EB0586);
+    border-color: #fff;
+    border-width: 0 1px 1px 1px;
+    color: #fff;
+    border-radius: 4px;
+}
+.Main {
+    padding-left: var(--sidebar-width);
+    padding-top: calc(var(--header-height) + 40px);
+    padding-bottom: 2rem;
+    background: #fff;
+}
+
+.list-group-item.active, .list-group-item.active:hover, .list-group-item.active:focus {
+    z-index: 2;
+    color: #ffffff;
+    background: linear-gradient(#EF4F34, #EB0586);
+    border-color: #EB0586;
+    border-radius: 4px;
+}
+#toc > ul li a {
+    display: block;
+    color: #EF4F34;
+    font-size: .9rem;
+    padding-left: 0;
+}
+a:focus, a:hover {
+    color: #EF4F34;
+    text-decoration: underline;
+}
+.Sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    position: fixed;
+    top: var(--header-height);
+    bottom: 0;
+    z-index: 9;
+    overflow-y: auto;
+    padding: 40px 0 30px;
+    word-break: break-word;
+}
+
+.token.punctuation {
+    color: #F57FA3;
+}
+.page-content h1, .page-content h2, .page-content h3, .page-content h4, .page-content h5, .page-content h6 {
+    font-weight: 300;
+    line-height: 1.2;
+    color: #EF4F34;
+}
+
+.glyphicon {
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    font-family: 'Glyphicons Halflings';
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    color: #F57FA3;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+p {
+    font-size: 16px;
+    line-height: 24px;
+    margin: 0px 0px 12px 0px;
+}
+
+h1,h2{
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    color: #000;
+}
+
+h3, h4, h5, h6, legend {
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    color: #EF4F34;
+}
+.Content a, .page-content a, a {
+    color: #EB0586;
+    text-decoration: none;
+}
+
+element.style {
+    font-weight: bold;
+    color: #EF4F34 !important;
+}
+
+.tocify {
+    width: 20%;
+    max-height: 90%;
+    overflow: auto;
+    margin-left: 2%;
+    position: fixed;
+    border: 1px transparent;
+    border-radius: 6px;
+}
+.tocify .tocify-item a, .tocify .list-group-item {
+    padding: 5px 0;
+    border-radius: 4px;
+}
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    float: left;
+    min-width: 160px;
+    padding: 5px 0;
+    margin: 2px 0 0;
+    list-style: none;
+    font-size: 14px;
+    text-align: left;
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    border: 1px solid transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+}
+table {
+    display: table;
+    border-collapse: separate;
+    border-spacing: 2px;
+    border-color: grey;
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    border: 2px solid transparent;
+    border-radius: 4px;
+}
+pre {
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    display: block;
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.42857143;
+    word-break: break-all;
+    word-wrap: break-word;
+    color: #333333;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border: 2px solid transparent;
+}
+
+b, strong {
+    font-weight: bold;
+    color: #EB0586;
+}
+</style>
+
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE, include = FALSE}
+# ^^ changed b, strong {} color to ps_pink to try and change color of bolded text
+
+# package loading
+library(ggplot2)
+library(knitr)
+library(dplyr)
+library(kableExtra)
+library(grid)
+library(gridExtra)
+
+# utilities for snowflake
+source('~/SageMaker/efs/author_compensation/video/prod_framework/utilities.R')
+
+# pluralsight colors
+ps_orange <- "#EF4F34"
+ps_pink <- "#F57FA3"
+ps_purple  <- "#EB0586"
+
+# data querying
+authcomp <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+# data quality check
+head(authcomp)
+ls(authcomp)
+sum(is.na(authcomp$avg_demand_normalized)) 
+
+authcomp <- authcomp %>%
+  filter(!is.na(authcomp$avg_demand_normalized))
+
+```
+
+## Introduction
+
+[Introductory context redacted]
+
+The purpose of this project is to expand the data currently utilized in the training framework of the Content Performance model to include new features and approaches that have been identified as driving potential increases in projection accuracy. These data points serve as further insight into the types of content that at any given time may be less or more valuable to the Pluralsight user.
+
+This EDA was created to explore the structure of these newly implemented features in tandem with the current data that exists within the Content Performance framework. 
+
+The data for this EDA includes 24016 observations ranging from May 2021 to May 2022, with 711 unique courses represented. Limited quantities were available to analyze; however, this EDA serves as a leading indicator for the value of these features in the future when additional data is available. 
+
+Upon completion of this exploration, the updated dataset utilized within this EDA will be trained using appropriate machine learning algorithms to project the performance of a given piece of content. 
+
+### External Market Demand
+
+One new feature identified as valuable and worth exploration is external market demand data. The PS Content Analytics team gathers market demand signals from [redacted] to provide insight into which market concepts are most popular.
+
+Once collected, these signals are normalized and combined to create an overall market demand score for each market concept. These concepts are recorded as taxonomy tags that are joined to PS courses. This overall demand score will be used alongside the current training data to represent external market demand for courses and their concepts.
+
+More details about the process of calculating and joining demand scores to the Content Performance framework are discussed in the **[External Demand Implementation]** section of this EDA.
+
+### Internal User Demand
+
+Another feature identified for further exploration is internal user demand data. In an effort to design a high-level representation of internal demand among PS users, the search count variable was created by the PS Content Analytics team and newly implemented for this EDA. The search count variable represents the number of searches on the PS platform related to a specific course concept, allowing Pluralsight to measure how searched or "internally demanded" a concept is by PS users.
+
+More details about the process of creating and joining search counts to the Content Performance framework are discussed in the **[Internal Demand Implementation]** section of this EDA.
+
+## View Time Percentage (VT%)
+
+“Course Performance” is difficult to define at a scaled level, as niche content topics are not ingested as much as wider-scale technical learning areas. These niche content groups are just as important, as they allow PS to scale its offerings to new customer groups and remain adaptive in a dynamic tech world.
+
+View time for a given piece of video content is tracked at PS on a daily basis. This offers an opportunity for predictive outcomes to be measured in terms of a course’s view time. In order to scale the outcome across the content library the percentage of total view time that a course is responsible for is used as opposed to raw view time. This ensures that niche content groups aren’t penalized for low viewership and can still receive fair compensation.
+
+Aggregating the available data at the course level on a month-to-month basis gives a monthly view time percentage (**VT%**) for a given piece of content. This is **the key outcome variable** for our predictive modeling. 
+
+[additional context redacted]
+
+### VT% Distribution
+
+```{r, message = FALSE, warning = FALSE}
+
+ggplot(authcomp, aes(x = view_time_perc)) +
+  geom_histogram(fill = ps_purple, color = ps_purple, alpha = 0.3, bins = 30) +
+  geom_vline(aes(xintercept = median(view_time_perc)), color = "black", linetype = "dashed") +
+  geom_vline(aes(xintercept = mean(view_time_perc)), color = "black") +
+  labs(title = "Distribution of VT%", caption = "dashed = median, solid = mean", x = "VT%", y = "Count") +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+```
+
+The distribution of VT% for courses at PS is very heavily right-skewed due to the nature of video content ingestion at PS; although specific content areas are viewed in greater mass than others simply because of their instructional topics, most content areas share a relatively similar VT%. 
+
+Because view time is not normally distributed across the course library, a log transformation is performed on the outcome variable when implemented into later models and algorithms. This normalizes the distribution and allows for more robust projections. Once the model has been applied to incoming data, predictions are exponentiated to return the raw projected view time percentage. 
+
+Due to the skewed nature of the distribution, specific values and trends are more difficult to interpret when viewing the distribution in its entirety. To mitigate confusion, further visualizations of the VT% axis will exclude the top 25% of the distribution range (*note: this exclusion impacts <1% of all observations, and all excluded values are outliers*).
+
+### VT% and Platform Size
+
+Pluralsight's **platform size** is defined by the number of active courses present on the PS platform at the beginning of a given month. In the past year, this amount has ranged between `r min(authcomp$platform_size)` and `r max(authcomp$platform_size)`. While the viewership variable was designed to represent a percentage of total view time as opposed to raw view time, it is possible that platform size could still impact viewership.
+
+```{r, warning=FALSE, message = FALSE, out.width="75%", out.height="75%"}
+
+library(patchwork)
+
+# viewership plot
+a1 <- authcomp %>%
+group_by(usage_year_month) %>%
+summarise(view_time_perc = mean(view_time_perc)) %>%
+distinct() %>%
+  ggplot() +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, group = 1), color = ps_purple) +
+  theme_classic() +
+  labs(title = "VT% over Time", x = "Time", y = "Avg VT%") +
+  theme(text = element_text(size = 15), legend.position = 'none', axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust = 0.5))
+
+# platform size plot
+a2 <- authcomp %>%
+group_by(usage_year_month) %>%
+summarise(platform_size = max(platform_size)) %>%
+distinct() %>%
+  ggplot() +
+  geom_line(aes(x = usage_year_month, y = platform_size, group = 1), color = ps_purple) +
+  theme_classic() +
+  labs(title = "Platform Size over Time", x = "Time", y = "Platform Size") +
+  theme(text = element_text(size = 15), legend.position = 'none', axis.text.x = element_text(angle = 45, hjust = 1), plot.title = element_text(hjust = 0.5))
+
+a1 + a2
+
+```
+
+Upon analyzing changes in VT% relative to changes in platform size, the VT% does not appear to be impacted by changes in platform size. The correlation between VT% and platform size is insignificant at a value of `r round(cor(authcomp$view_time_perc, authcomp$platform_size), 3)`, indicating that changes in platform size do not significantly impact VT%.
+
+### VT% and Path Position
+
+```{r, include = FALSE, echo = FALSE}
+path <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE] WHERE usage_year_month >= '2021-05-01'")
+
+path$position_number <- as.factor(path$position_number)
+```
+
+Another defining feature for courses on the PS platform is **path position**. Most courses are not stand-alone courses, meaning they are typically implemented within larger, more general learning paths. Due to a course's ability to be utilized within various learning paths, the path position feature within the Content Performance training dataset represents the average position number for an individual course.
+
+The following table displays the average VT% for each path position:
+
+```{r, fig.align='center'}
+
+kable(path %>% select(position_number, usage_year_month, avg_vt) %>% group_by(position_number) %>% summarize(avg_vt = mean(avg_vt)), caption = "<b>Average VT% per Path Position<b>", col.names = c("Position Number", "Average VT%")) %>%
+  kable_styling(position = 'center', full_width = FALSE)
+
+```
+
+Since May 2021, **the average position of 4 has had the highest VT%** relative to other average positions, with average position 0 having the lowest VT%. This is potentially explained by the PS feature that allows users to test out of beginner courses in a path based on their skill IQ, thereby reducing the VT% for those first few courses.
+
+```{r, fig.align='center', out.width="100%", out.height="100%"}
+
+library(RColorBrewer)
+
+my_colors <- RColorBrewer::brewer.pal(9, "RdPu")[4:9]
+
+ggplot(path, mapping = aes(x = usage_year_month, y = avg_vt, shape = position_number, group = position_number, color = position_number)) +
+  geom_line() +
+  geom_point(size = 3, alpha = 0.7) +
+  labs(title = "VT% & Path Position", x = "Date", y = "VT%") +
+  theme_classic() +
+  scale_x_date(date_labels = "%b %y") +  
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = my_colors) +
+  scale_fill_manual(values = my_colors)
+
+```
+
+Since May 2021, positions 0 through 2 have seen relatively little viewership growth over time. However, positions 3 and 4 have steadily increased, with position 3 viewership surpassing position 5 viewership in 2022 as position 5 viewership decreased. Overall, courses with a higher average path positions appear to have a higher average VT%.
+
+### VT% and Course Duration
+
+The Content Performance model also utilizes **course duration**, as it is part of the basic information that PS Project Coordinators obtain from Authors. By including course duration as a feature in the Content Performance framework, the training algorithm can utilize a course's projected duration when generating predictions. Depending on the individual needs of a PS user, course duration may have an impact on their ingestion of a given piece of content. 
+
+```{r, warning = FALSE, message = FALSE}
+library(patchwork)
+
+ggplot(authcomp, aes(x = duration_in_hours)) +
+  geom_histogram( fill = ps_purple, color = ps_purple, alpha = 0.3) +
+  geom_vline(aes(xintercept = median(duration_in_hours)), color = "black", linetype = "dashed") +
+  geom_vline(aes(xintercept = mean(duration_in_hours)), color = "black") +
+  labs(x = "Duration (hrs)", y = "Count", title = "Distribution of Course Durations", caption = "dashed = median, solid = mean") +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+Most PS courses analyzed in this dataset are between **1-3** hours, with the average course being about **`r round(mean(authcomp$duration_in_hours))`** hours long. However, the distribution of course lengths is slightly right skewed, with courses ranging up to **`r round(max(authcomp$duration_in_hours))`** hours long. This phenomenon can potentially be attributed to the effort required to make longer courses, or a more substantial need for shorter, high-level content versus longer, niche-level content.
+
+```{r, warning = FALSE, message = FALSE}
+
+ggplot(authcomp, mapping = aes(x = duration_in_hours, y = view_time_perc)) +
+  geom_point(color = ps_purple, alpha = 0.3) +
+  geom_vline(aes(xintercept = median(duration_in_hours)), color = "black", linetype = "dashed") +
+  geom_vline(aes(xintercept = mean(duration_in_hours)), color = "black") + 
+  labs(title = "VT% & Duration", caption = "dashed = median, solid = mean", x = "Duration (hrs)", y = "VT%") +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  ylim(0, 0.005)
+
+```
+
+VT% and course duration are generally uncorrelated with a value of only `r round(cor(authcomp$view_time_perc, authcomp$duration_in_hours), 3)`, as there are several lengthy courses with a high VT% and several shorter courses with a lower VT%. 
+
+This low correlation allows for content to receive viewership regardless of length, diversifying the content available on the PS platform. While shorter content may be generally easier to ingest, there is still a user base that values longer, in-depth content.
+
+### VT% and Tags
+
+The features utilized from the PS Market Taxonomy, known as level 1 and level 2 tags, have significantly improved the Content Performance model since being implemented. 
+
+[context redacted]
+
+Understanding the relationship between the number of level 1, level 2, and total tags alongside viewership allows the Skills organization to make informed decisions regarding what amount of tags is optimal for course viewership and what amount may define a course as too niche or over-defined.
+
+Multiple tag sets can be assigned to one piece of content, which can lead to a phenomenon referred to as **tag overlap**. While only unique tags between sets are used to train the algorithm, a binary indicator denoting prior tag overlap is provided to the model, allowing the model to differentiate between courses that do or do not contain tag overlap in their tagging assignments. 
+
+```{r, message = FALSE, warning = FALSE, out.width="100%", out.height="100%"}
+
+authcomp$tag_overlap <- as.factor(authcomp$tag_overlap)
+
+ggplot(authcomp, mapping = aes(x = view_time_perc, fill = tag_overlap, color = tag_overlap)) +
+  geom_histogram(position = "identity", alpha = 0.5) +
+  labs(title = 'VT% & Tag Overlap', x = 'VT %', y = 'count') +
+  theme_classic() +
+  xlim(0, 0.0005) +
+  scale_fill_manual(values = c(ps_purple, ps_orange), labels = c("No Overlap", "Overlap")) +
+  scale_color_manual(values = c(ps_purple, ps_orange), labels = c("No Overlap", "Overlap")) +
+  theme(legend.title = element_blank(), text = element_text(size = 15), plot.title = element_text(hjust = 0.5))
+
+```
+
+Results indicate that the difference in average viewership between courses with tag overlap and courses without tag overlap is statistically insignificant (p = 0.016). Though there is currently no significant difference in the distribution of courses with tag overlap and courses without tag overlap, this may change if courses were to contain more unique level 2 tags over time.
+
+```{r, fig.align='center', warning = FALSE, message = FALSE, out.width="75%", out.height="75%"}
+
+b1 <- ggplot(authcomp, aes(x = view_time_perc, y = n_tags_lvl1, group = n_tags_lvl1)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.3) +
+  labs(title = 'VT% & Level 1 Tags', x = 'VT%', y = '# of level 1 tags') +
+  xlim(0, 0.0005) +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5),  axis.text.x = element_text(angle = 45, hjust = 1))
+
+b2 <- ggplot(authcomp, aes(x = view_time_perc, y = n_tags_lvl2, group = n_tags_lvl2)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.3) +
+  labs(title = 'VT% & Level 2 tags', x = 'VT%', y = '# of level 2 tags') +
+  xlim(0, 0.0005) +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5),  axis.text.x = element_text(angle = 45, hjust = 1))
+
+b1 + b2
+```
+
+While having several level 1 tags causes VT% to go down, having several level 2 tags causes VT% to go up. With this observation, it may be beneficial to focus more on level 2 assignments for courses, versus level 1. This may mean including **more tag overlap** when assigning concepts to course opportunities (i.e. tag sets with the same level 1 tag but different level 2 tags).
+
+```{r, warning = FALSE, message = FALSE}
+
+ggplot(authcomp, aes(x = view_time_perc, y = n_tags_total, group = n_tags_total)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.3) +
+  labs(title = 'VT% & Total Tags', x = 'VT%', y = '# of total tags') +
+  xlim(0, 0.0005) +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+When looking at total tag amounts, most courses have the same general distribution for VT%; however, there are several outliers with a high VT% when the number of tags per course is lower, and the VT% distribution gets smaller when the maximum number of tags (10) are assigned. It is possible that courses with several tags may too niche to warrant a high VT%.
+
+The following table numerically displays the average VT% for a given total number of tags:
+
+```{r, fig.align='center', warning = FALSE, message = FALSE}
+
+kable(authcomp %>%
+  select(n_tags_total, view_time_perc) %>%
+  group_by(n_tags_total) %>%
+  summarise(view_time_perc = mean(view_time_perc)), caption = "<b>Average VT% for Total Tags<b>", col.names = c("# of tags", "VT%"), align = "lr") %>%
+  kable_styling(position = 'center', full_width = FALSE, font_size = 15)
+
+```
+
+Other than the decrease observed when using the maximum number of tags, average VT% is relatively unaffected by the total number of tags assigned to a course. While the overall number of tags may not significantly impact viewership, it is possible that assigning more unique level 2 tags to courses via tag overlap could lead to an increase in VT%.
+
+```{r, include = FALSE, message = FALSE, warning = FALSE}
+
+## testing if means are statistically different between the distributions
+
+no_overlap <- subset(authcomp, tag_overlap == "0")
+overlap <- subset(authcomp, tag_overlap == "1")
+
+t.test(overlap$view_time_perc, no_overlap$view_time_perc)
+
+```
+
+## External Demand Implementation
+
+The external demand variable is a new feature implemented for this EDA. The PS Content Analytics team gathers market demand signals to provide insight into which market concepts are most popular. These signals are used in creating the overall demand ranking of concepts. 
+
+[context redacted]
+
+These external demand concepts are recorded as **level 3 tags**, which are then joined to the Content Performance framework through the course library. By joining these level 3 tags, the dataset utilized within the Content Performance framework can access relevant demand scores for each course. For training purposes, the demand scores in this EDA have been averaged across domains to provide one overall demand score per concept.
+
+### The Demand Variable
+
+Understanding the distribution of demand scores across the PS platform provides insights into how well PS content aligns with the current market demand. If several courses have low demand scores associated with them, it may be beneficial to implement more courses that cover concepts with high demand scores.
+
+```{r, warning = FALSE, message = FALSE}
+
+ggplot(authcomp, aes(x = avg_demand_normalized)) +
+  geom_histogram(fill = ps_purple, color = ps_purple, alpha = 0.3) +
+  geom_vline(aes(xintercept = median(avg_demand_normalized)), color = "black", linetype = "dashed") +
+  geom_vline(aes(xintercept = mean(avg_demand_normalized)), color = "black") +
+  labs(title = "Distribution of Demand Scores", caption = "dashed = median, solid = mean", x = "Demand Score", y = "Count") +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+The distribution of demand scores for current PS content is left-skewed, indicating more high-demand content than low-demand content on the PS platform. Though scores range from `r round(min(authcomp$avg_demand_normalized), 3)` to `r round(max(authcomp$avg_demand_normalized), 3)`, the average PS course contains content with a demand score of `r round(mean(authcomp$avg_demand_normalized), 3)`.
+
+```{r, include = FALSE, echo = FALSE}
+
+#assigned for easier kable function
+highdemand <- authcomp %>%
+  select(course_name, n_tags_total, avg_demand_normalized, duration_in_hours) %>%
+  unique() %>%
+  arrange(desc(avg_demand_normalized)) %>%
+  head(50)
+
+lowdemand <- authcomp %>%
+  select(course_name, n_tags_total, avg_demand_normalized) %>%
+  unique() %>%
+  arrange(avg_demand_normalized) %>%
+  head(10)
+
+# courses with scores above 0.75
+authcomp %>%
+  select(course_name, avg_demand_normalized) %>%
+  unique() %>%
+  filter(avg_demand_normalized >= 0.75)
+
+# courses with scores below 0.25
+authcomp %>%
+  select(course_name, avg_demand_normalized) %>%
+  unique() %>%
+  filter(avg_demand_normalized <= 0.25)
+
+```
+
+The following tables represent the 10 highest and lowest in-demand courses on the Pluralsight platform, respectively. 
+
+[table redacted]
+
+```{r, results = 'asis', include = FALSE}
+
+kables(list(kable(highdemand[1:10, c(1, 3)], col.names = c("Course Name", "Demand Score"), caption = "Highest Demand"),
+            kable(lowdemand[1:10, c(1, 3)], col.names = c("Course Name", "Demand Score"), caption = "Lowest Demand")
+), caption = "<b>Highest and Lowest In-Demand Courses<b>") %>%
+  kable_styling(position = 'center', full_width = FALSE, font_size = 15)
+
+```
+
+Of the 712 unique courses in this dataset, there are currently **`r nrow(authcomp %>% select(course_name, avg_demand_normalized) %>% unique() %>% filter(avg_demand_normalized >= 0.75))`** courses that account for the top 25% of in-demand content (courses with demand scores of 0.75 or higher) and **`r nrow(authcomp %>% select(course_name, avg_demand_normalized) %>% unique() %>% filter(avg_demand_normalized <= 0.25))`** courses that account for the bottom 25% of in-demand content (courses with demand scores of 0.25 or lower). 
+
+### External Demand and Duration
+
+PS houses a wide variety of courses with lengths ranging from `r min(authcomp$duration_in_hours)` to `r max(authcomp$duration_in_hours)` hours. Currently, of the **top 50 most in-demand** courses analyzed within this dataset, the average duration is **`r mean(highdemand$duration_in_hours)` hours**. 
+
+```{r, warning = FALSE, message = FALSE, out.width="75%", out.height="75%"}
+
+ggplot(authcomp, mapping = aes(x = avg_demand_normalized, y = duration_in_hours)) +
+  geom_point(color = ps_purple, alpha = 0.3) +
+  theme_classic() +
+  geom_hline(yintercept = mean(authcomp$duration_in_hours), linetype = 'dashed', color = 'black') +
+  geom_vline(xintercept = mean(authcomp$avg_demand_normalized), color = 'black') +
+  labs(title = "Demand & Course Duration", x = "Demand Score", y = "Duration (hrs)", caption = "dashed = avg. duration, solid = avg. demand") +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+Similar to VT% and duration, there is a very low correlation between demand and duration of just `r round(cor(authcomp$duration_in_hours, authcomp$avg_demand_normalized), 3)`, meaning that a course's length does not significantly impact its demand, and a course's demand does not significantly impact its length. 
+
+This has created a phenomenon where several courses with above-average durations have below-average demand scores. In the visualization above, these courses are represented in the upper-left quadrant. 
+
+In total, there are **`r nrow(filter(authcomp, avg_demand_normalized < mean(avg_demand_normalized) & duration_in_hours > mean(duration_in_hours)))` observations** that fit this criteria. This represents **18%** of all observations analyzed within this dataset. In the future, feature decisions such as external demand may be used to influence how many hours in length a course should be.
+
+### External Demand & Viewership
+
+Perhaps the most important relationship to look at when analyzing external demand is its relationship with viewership. Hypothetically, a high external demand score would be strongly correlated with high viewership on the PS profile, and a low external demand score would be correlated with low viewership.
+
+```{r, message = FALSE, warning = FALSE, out.width="75%", out.height="75%"}
+
+ggplot(authcomp, mapping = aes(x = avg_demand_normalized, y = view_time_perc)) +
+  geom_point(color = ps_purple, alpha = 0.3, show.legend = FALSE) + 
+  geom_smooth(color = 'black') +
+  labs(title = "View time % and Demand", x = "Demand Score", y = "VT%") + 
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  ylim(0, 0.005)
+
+```
+
+When first analyzing the relationship between demand and VT%, it appears to be fairly positive with VT% generally increasing as demand score increases. Though the correlation is relatively low at a value of `r round(cor(authcomp$avg_demand_normalized, authcomp$view_time_perc), 3)`, statistical tests indicate that the correlation is still statistically significant (p > 0.000), especially relative to other relationships within the dataset.
+
+### External Demand & Quantiles {#quantile}
+
+![](Quantiles.png)
+
+Another feature implemented within the Content Performance model is the **quantile variable**. This feature separates content into 5 distinct groups, with group 5 representing the top 20th percentile of view time in a given month for all video library content at PS and groups 1-4 representing the rest of the percentile distribution accordingly. A high-level visualization of this concept is displayed above:
+
+```{r, message = FALSE, warning = FALSE, fig.align='center'}
+
+ggplot(authcomp, aes(x = avg_demand_normalized, y = quant_vt, group = quant_vt)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.2) +
+  labs(title = 'Demand per Quantile', x = 'Demand Score', y = 'VT% Quantile') +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+With VT% broken down by quantile, the average demand score does generally increase per quantile with a relatively high correlation of `r round(cor(authcomp$avg_demand_normalized, authcomp$quant_vt), 3)`; however, the full range of demand scores per quantile includes several outliers. 
+
+```{r, warning = FALSE, message = FALSE, fig.align='center'}
+
+ggplot(authcomp, mapping = aes(x = view_time_perc, y = avg_demand_normalized, color = quant_vt)) +
+  geom_point(alpha = 0.3) +
+  labs(title = "VT% and Demand", x = "VT%)", y = "Demand Score") +
+  coord_flip() +
+  xlim(0, 0.005) +
+  scale_color_gradient(low = ps_purple, high = ps_orange) +
+  theme_classic() +
+  facet_wrap(~quant_vt) +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+This is further visualized when looking at specific point values. There are several courses within the lowest quantile of PS viewership with extremely high demand scores, and several courses within the highest quantile of PS viewership with below-average demand scores. Additionally, there is virtually zero difference in the distribution of demand scores across quantiles until the highest quantile group. 
+
+This phenomenon can potentially be attributed to the existence of niche content on the PS platform. Though these niche content groups have lower a VT% associated with them, they are just as important as they allow PS to scale its offerings to new customer groups and remain adaptive in a dynamic tech world.
+
+### External Demand and Tags
+
+```{r, echo=FALSE, include = FALSE, message = FALSE}
+
+demand <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+demand$level3 <- NULL
+
+demand <- demand %>%
+  select(l3_label, avg_demand_normalized) %>%
+  unique() %>%
+  arrange(desc(avg_demand_normalized))
+
+```
+
+Because demand scores are linked directly to level 3 tags, analyzing demand's relationship with level 1 and level 2 tags is somewhat irrelevant; however, understanding the relationship between demand and the number of total tags is still informative. 
+
+The following table displays the 10 highest and lowest in-demand tags currently on the Market Taxonomy, respectively:
+
+[table redacted]
+
+```{r, include = FALSE, echo = FALSE}
+
+kables(list(kable(demand %>% select(l3_label, avg_demand_normalized) %>% arrange(desc(avg_demand_normalized)) %>% head(10), col.names = c("Highest Level 3 Tags", "Demand Score")),
+            kable(demand %>% select(l3_label, avg_demand_normalized) %>% arrange(avg_demand_normalized) %>% head(10), col.names = c("Lowest Level 3 Tags", "Demand Score"))),
+       caption = "<b>Highest and Lowest Tags -- Based on External Demand<b>") %>%
+  kable_styling(position = 'center', full_width = FALSE, font_size = 15)
+
+```
+
+Note that the courses with the 10 lowest demand scores displayed at the beginning of this section have higher scores than the tags with the 10 lowest demand scores displayed in this table. This is due to these 10 lowest level 3 tags **not being assigned** to content on the PS platform within the last year. 
+
+There appears to be a high variance in demand score when a course only has a few tags assigned to it; however, the demand score for a course appears to go down as the number of tags increases. This phenomenon is potentially due to courses with several tags being so niche and specific that there isn't a high enough external demand score for that concept. While there's a possibility that a certain number of tags corresponds with the highest demand scores, the correlation between external demand and number of tags is essentially negligible at a value of `r cor(authcomp$avg_demand_normalized, authcomp$n_tags_total)`.
+
+```{r, warning = FALSE, message = FALSE}
+
+ggplot(authcomp, aes(x = avg_demand_normalized, y = n_tags_total, group = n_tags_total)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.3) +
+  labs(title = 'Demand & Total Number of Tags', x = 'Normalized Demand', y = '# of tags') +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+The table previously displaying the highest and lowest in-demand courses has been referenced again, this time displaying the number of tags associated with each course:
+
+[table redacted]
+
+```{r, include = FALSE, echo = FALSE}
+kables(list(kable(highdemand[1:10, c(1:3)], col.names = c("Course Name", "Number of Tags", "Demand Score"), align = "lcr", caption = "Highest Demand"),
+            kable(lowdemand[1:10, c(1:3)], col.names = c("Course Name", "Number of Tags", "Demand Score"), align = "lcr", caption = "Lowest Demand")
+), caption = "<b>Highest and Lowest In-Demand Courses<b>") %>%
+  kable_styling(position = 'center', full_width = FALSE, font_size = 15)
+```
+
+As shown by the table above, the number of total tags is not explicitly correlated with the demand score of a given course. This phenomenon provides more flexibility when assigning tags to courses, as the amount does not seem to significantly correlate to demand either positively or negatively.
+
+## Internal Demand Implementation
+
+The search count feature was created for this EDA to represent internal demand among PS users. To create this variable, all searches on the PS platform within the last year were collected, cleaned, and aggregated through various text munging tools. Searches were then looped through a process that assigned them to level 3 tag concepts that matched the contents of the cleaned search query. These level 3 tags were then joined to the Content Performance data through the course. By joining these level 3 tags, the dataset utilized within the Content Performance framework can access relevant search counts for course concepts.
+
+[redacted]
+
+```{r, include = FALSE, message = FALSE, echo = FALSE}
+
+search <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+authcomp_search <- authcomp %>%
+  select(course_name, search_count) %>%
+  right_join(search, by = c("search_count" = "search_cnt")) %>%
+  unique()
+
+authcomp_search <- authcomp_search %>%
+  select(l3_tag, search_count) %>%
+  arrange(desc(search_count)) %>%
+  unique()
+
+```
+
+### The Search Count Variable
+
+Understanding the distribution of search counts across the PS library provides insight into the diversity of PS user demand. For example, if a small number of courses make up a large portion of PS searches, it may be beneficial to broaden the content published for those highly searched concepts.
+ 
+```{r, warning = FALSE, message = FALSE, fig.align='center'}
+
+ggplot(authcomp, aes(x = search_count)) +
+  geom_histogram(fill = ps_purple, color = ps_purple, alpha = 0.3, bins = 30) +
+  geom_vline(aes(xintercept = median(search_count)), color = "black", linetype = "dashed") +
+  geom_vline(aes(xintercept = mean(search_count)), color = "black") +
+  labs(title = "Distribution of Search Counts", caption = "dashed = median, solid = mean", x = "# of Searches per Course") +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y=element_blank()) +
+  xlim(0, 40000)
+
+```
+
+The distribution of search counts is extremely right-skewed. The average number of searches per course is **`r round(mean(authcomp$search_count), 0)`**, but most courses have **fewer than 5000** searches associated with them, as demonstrated by the median value of **`r median(authcomp$search_count)`**. This phenomenon can potentially be explained by the nature of the PS content library; some courses are very general and could have a lot of searches associated with them, versus a more niche course that isn't searched as often. These highly-searched concepts cause the average search count per course to be significantly higher than the median search count per course across the PS library.
+
+Due to the skewed nature of the distribution, specific values and trends are more difficult to interpret when viewing the distribution in its entirety. To mitigate confusion, visualizations of the search count axis will exclude values above 40000. 
+
+The following table displays the level 3 tags with the highest and lowest search counts:
+
+[table redacted]
+
+```{r, include = FALSE, error = TRUE, echo = FALSE}
+
+kables(list(kable(authcomp_search %>% select(l3_tag, search_count) %>% group_by(l3_tag) %>% summarise(search_count = round(mean(search_count), 0)) %>% arrange(desc(search_count)) %>% head(10), row.names = FALSE, col.names = c("Level 3 Tags", "Search Count"), caption = "Most Searched"),
+            kable(authcomp_search %>% select(l3_tag, search_count) %>% group_by(l3_tag) %>% summarise(search_count = mean(search_count)) %>% arrange(search_count) %>% head(10), row.names = FALSE, col.names = c("Level 3 Tags", "Search Count"), caption = "Least Searched")), caption = "<b>Most and Least Searched Level 3 Tags<b>") %>%
+  kable_styling(font_size = 15, position = 'center', full_width = FALSE)
+
+```
+
+Additionally, there are **`r nrow(authcomp %>% select(course_name, search_count) %>% unique() %>% filter(search_count == 0))`** courses within this dataset that have a search count of **0**, meaning the concepts tagged to that course have not been searched within the Pluralsight platform between May 2021 and May 2022.
+
+### Search and Demand
+
+The search count and demand score features represent internal PS user demand and external market demand, respectively. Understanding the relationship between these two features provides insight into the similarities and differences between PS demand and external demand. There may be concepts that are highly demanded in the current market but not highly searched on the PS platform, or vice versa. 
+
+```{r, message = FALSE, warning = FALSE, out.width="75%", out.height="75%"}
+
+ggplot(authcomp, mapping = aes(x = avg_demand_normalized, y = search_count)) +
+  geom_point(color = ps_purple, alpha = 0.3) +
+  theme_classic() +
+  labs(title = "Demand Score & Search Count", x = "Demand Score", y = "Search Count", caption = "dashed = avg. search count, solid = avg. demand") +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  ylim(0, 40000) + 
+  geom_smooth(color = "black")
+
+```
+
+Overall, the relationship between demand score and search count is relatively positive and linear. Compared to other features in this dataset, demand and search count have a higher correlation value of `r round(cor(authcomp$avg_demand_normalized, authcomp$search_count), 3)`. While there is some variance as search counts increase, external market and internal PS demand appear to be aligned.
+
+[plot redacted]
+
+```{r, message = FALSE, warning = FALSE, fig.align='center', include = FALSE}
+
+agg_tag_info <- tag_info %>%
+  select(level_3, search_count, avg_demand_normalized) %>%
+  group_by(level_3) %>%
+  summarise(search_count = round(mean(search_count), 0), avg_demand_normalized = mean(avg_demand_normalized)) %>%
+  arrange(desc(search_count))
+
+top_10_search <- agg_tag_info %>%
+  head(6)
+
+my_colors <- RColorBrewer::brewer.pal(9, "RdPu")[4:9]
+
+ggplot(top_10_search, mapping = aes(x = avg_demand_normalized, y = search_count, shape = level_3, color = level_3)) +
+  geom_point(size = 4) +
+  theme_classic() +
+  labs(title = "Demand for Top 6 Searched Level 3 Tags", x = "Demand Score", y = "Search Count") +
+  theme(text = element_text(size = 15)) +
+  scale_color_manual(values = my_colors)
+
+```
+
+Though internal and external demand are generally aligned overall, the relationship is much more disjoint when looking at the top most-searched level 3 tags. [interpretation redacted]. This may suggest that PS users desire content that differs from the desired market concepts.
+
+### Search Count and VT%
+
+Analyzing the relationship between search count and viewership may provide potential insight into PS viewership patterns. Hypothetically, concepts with high search counts would lead to their associated courses having high viewership.
+
+```{r, message = FALSE, warning=FALSE}
+
+ggplot(authcomp, mapping = aes(x = search_count, y = view_time_perc)) +
+  geom_point(color = ps_purple, alpha = 0.3) +
+  theme_classic() +
+  geom_hline(yintercept = mean(authcomp$view_time_perc), linetype = 'dashed', color = 'black') +
+  geom_vline(xintercept = mean(authcomp$search_count), color = 'black') +
+  labs(title = "Search Count & VT%", x = "Search Count", y = "VT%", caption = "dashed = avg. VT%, solid = avg. search count") +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  xlim(0, 40000) +
+  ylim(0, 0.005)
+
+```
+
+Upon visualizing the distribution, it appears that the relationship between search counts and VT% as a whole is not extremely clear. However, several courses are visualized with above-average viewership and below-average search counts. This may indicate a PS user base that is ingesting niche content in high quantities.
+
+```{r, message = FALSE, warning=FALSE, fig.align='center'}
+
+ggplot(authcomp, aes(x = search_count, y = quant_vt, group = quant_vt)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.2) +
+  labs(title = 'Search Counts per Quantile', x = 'Search Count', y = 'VT% Quantile') +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  xlim(0, 40000)
+
+```
+
+When analyzing search counts and viewership by quantile, there is a bit more clarity in the distribution. Overall, there appears to be an increase in search count when viewership quantile increases, indicating generally higher viewership for courses with higher search counts associated with them. 
+
+The following table displays the average search count per quantile group:
+
+```{r, message = FALSE, warning=FALSE}
+
+kable(authcomp %>% select(quant_vt, search_count) %>% group_by(quant_vt) %>% summarise(search_count = round(mean(search_count), 0)), caption = "<b>Search Counts per Quantile<b>", align = "lr", col.names = c("Quantile", "Average Search Count")) %>%
+  kable_styling(full_width = FALSE, position = 'center', font_size = 15)
+
+```
+
+Despite the content in quantile 0 representing the lowest 20% of viewership, the average search count per course is the highest in that group. This could suggest niche topics being searched in large amounts; however, this may also suggest that searches are not correlated with actual viewership (i.e. a topic is frequently searched but not clicked on/viewed).
+
+Hypothetically, quantiles 0 and 4 have the highest average search counts due to the saturation of high-viewership content. If there are several courses that satisfy a specific content demand, some of those courses may not be viewed simply because there are so many courses to choose from. This phenomenon would associate these courses with high search counts, but place them in the lowest viewership quantile. 
+
+## Conclusion
+
+The external and internal demand features explored throughout this EDA are hypothesized to provide huge advancements in the predictive capabilities of the view time model. Findings discovered within this EDA will be explored further upon the re-training and implementation in tandem with the current historical course data that exists within the Content Performance Framework
+
+<br>
+
+<br>
