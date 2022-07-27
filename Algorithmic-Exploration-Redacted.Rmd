@@ -1,0 +1,1325 @@
+---
+title: "Algorithmic Exploration with Demand & Compensation Data"
+author: "Aubree Curtis, Data Analyst Intern | Brayden Ross, Senior Data Analyst"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  html_document:
+    pdf_document: null
+    theme: lumen
+    toc: yes
+    toc_float: yes
+    code_folding: hide
+  pdf_document:
+    toc: yes
+  html_notebook: 
+    toc: yes
+  
+editor_options: 
+  chunk_output_type: inline
+---
+
+<style>
+.btn {
+    padding: 6px 9px 4px;
+    border-width: 1px 1px 1px 1px;
+    background: linear-gradient(#EF4F34, #EB0586);
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: #fff;
+    border-radius: 4px;
+}
+btn-default {
+    color: #fff;
+    background-color: #fff;
+    border-color: #fff;
+    border-width: 1px 1px 1px 1px;
+    border-radius: 4px;
+}
+.btn-default:hover, .btn-default:focus, .btn-group.open .dropdown-toggle.btn-default {
+    background:linear-gradient(#EF4F34, #EB0586);
+    border-color: #fff;
+    border-width: 0 1px 1px 1px;
+    color: #fff;
+    border-radius: 4px;
+}
+.Main {
+    padding-left: var(--sidebar-width);
+    padding-top: calc(var(--header-height) + 40px);
+    padding-bottom: 2rem;
+    background: #fff;
+}
+
+.list-group-item.active, .list-group-item.active:hover, .list-group-item.active:focus {
+    z-index: 2;
+    color: #ffffff;
+    background: linear-gradient(#EF4F34, #EB0586);
+    border-color: #EB0586;
+    border-radius: 4px;
+}
+#toc > ul li a {
+    display: block;
+    color: #EF4F34;
+    font-size: .9rem;
+    padding-left: 0;
+}
+a:focus, a:hover {
+    color: #EF4F34;
+    text-decoration: underline;
+}
+.Sidebar {
+    width: var(--sidebar-width);
+    background: #fff;
+    position: fixed;
+    top: var(--header-height);
+    bottom: 0;
+    z-index: 9;
+    overflow-y: auto;
+    padding: 40px 0 30px;
+    word-break: break-word;
+}
+
+.token.punctuation {
+    color: #F57FA3;
+}
+.page-content h1, .page-content h2, .page-content h3, .page-content h4, .page-content h5, .page-content h6 {
+    font-weight: 300;
+    line-height: 1.2;
+    color: #EF4F34;
+}
+
+.glyphicon {
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    font-family: 'Glyphicons Halflings';
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    color: #F57FA3;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+p {
+    font-size: 16px;
+    line-height: 24px;
+    margin: 0px 0px 12px 0px;
+}
+
+h1,h2{
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    color: #000;
+}
+
+h3, h4, h5, h6, legend {
+    font-family: Arial, sans-serif;
+    font-weight: 700;
+    color: #EF4F34;
+}
+.Content a, .page-content a, a {
+    color: #EB0586;
+    text-decoration: none;
+}
+
+element.style {
+    font-weight: bold;
+    color: #EF4F34 !important;
+}
+
+.tocify {
+    width: 20%;
+    max-height: 90%;
+    overflow: auto;
+    margin-left: 2%;
+    position: fixed;
+    border: 1px transparent;
+    border-radius: 6px;
+}
+.tocify .tocify-item a, .tocify .list-group-item {
+    padding: 5px 0;
+    border-radius: 4px;
+}
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    display: none;
+    float: left;
+    min-width: 160px;
+    padding: 5px 0;
+    margin: 2px 0 0;
+    list-style: none;
+    font-size: 14px;
+    text-align: left;
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    border: 1px solid transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.175);
+}
+table {
+    display: table;
+    border-collapse: separate;
+    border-spacing: 2px;
+    border-color: grey;
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    border: 2px solid transparent;
+    border-radius: 4px;
+}
+pre {
+    background:  linear-gradient(#fff, #fff) padding-box,
+      linear-gradient(to right, #EF4F34, #EB0586) border-box;
+    display: block;
+    margin: 0 0 10px;
+    font-size: 13px;
+    line-height: 1.42857143;
+    word-break: break-all;
+    word-wrap: break-word;
+    color: #333333;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    border: 2px solid transparent;
+}
+
+b, strong {
+    font-weight: bold;
+    color: #EB0586;
+}
+</style>
+
+```{r, message = FALSE, include = FALSE, echo = FALSE}
+
+library(ggplot2)
+library(knitr)
+library(dplyr)
+library(kableExtra)
+library(grid)
+library(gridExtra)
+library(patchwork)
+library(Metrics)
+library(RColorBrewer)
+
+# pluralsight colors
+ps_orange <- "#EF4F34"
+ps_pink <- "#F57FA3"
+ps_purple  <- "#EB0586"
+
+### training data
+comp <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+### model output with ac and br view time predictions
+final_model <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+### model output with ac view time predictions based on projected demand
+preds_model <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+### submodel output with search count predictions
+internal <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+### submodel output with demand score predictions
+external <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+```
+
+## Introduction
+
+[Introductory context redacted]
+
+Content Performance is currently built under a framework which uses internal historical data to leverage insights and patterns of content viewership to make calculated, well-informed future offers for incoming content at Pluralsight. 
+
+The purpose of this project is to expand the data currently utilized in the training framework of the Content Performance model to include new features and approaches that have been identified as driving potential increases in projection accuracy. These data points serve as further insight into the types of content that at any given time may be less or more valuable to the Pluralsight user, thereby allowing content performance to be measured dynamically based on trends and changes related to in-demand technology learning areas.
+
+## The Outcome Variable 
+
+“Course Performance” is difficult to define at a scaled level, as niche content topics are not ingested as much as wider-scale technical learning areas. These niche content groups are just as important, as they allow PS to scale its offerings to new customer groups and remain adaptive in a dynamic tech world.
+
+View time for a given piece of video content is tracked at PS on a daily basis. This offers an opportunity for predictive outcomes to be measured in terms of a course’s view time. In order to scale the outcome across the content library the percentage of total view time that a course is responsible for is used as opposed to raw view time. This ensures that niche content groups aren’t penalized for low viewership and can still receive fair compensation.
+
+Aggregating the available data at the course level on a month-to-month basis gives a monthly view time percentage (**VT%**) for a given piece of content. This is **the key outcome variable** for our predictive modeling. 
+
+[additional context redacted]
+
+View time percentage is a unique outcome variable, as the values it contains can be incredibly skewed. This occurs due to the nature of video content ingestion at PS; Specific content areas are viewed in greater mass than others simply because of their instructional topics. For instance, Developers are interested in key areas of improvement, and unless tasked with learning a new unique technology will view courses such as fundamentals, big picture and refreshers. This presents a difficult outcome for an ML algorithm to predict, as view time is not normally distributed across the course library. Taking a look at the distribution below, we can see that it is incredibly right-skewed (the dotted line represents the average view time % for the dataset):
+
+```{r}
+
+comp %>%
+  # filter out large VT% for easier viewing
+  filter(view_time_perc < 0.005) %>%
+  ggplot() + 
+  # histogram of viewership distribution
+  geom_histogram(aes(x = view_time_perc, fill = ..count..), bins = 100) + 
+  theme_classic() + 
+  # average view time percentage as a line for reference
+  geom_vline(xintercept = mean(comp$view_time_perc), linetype = 'dashed', alpha = 0.5) + 
+  ylab('Count') + 
+  xlab('View Time %') + 
+  scale_fill_gradient2(low = ps_pink, mid = ps_purple, high = ps_orange, midpoint = 100) + 
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+In order to avoid skewness in the predictions a log transformation was performed on the outcome variable. This normalizes the distribution and allows for more robust projections using the available features. Once the the model has been applied to incoming data, predictions are exponentiated to return the raw projected view time percentage. The transformed distribution is shown below:
+
+```{r}
+
+comp %>%
+  ggplot() + 
+  # histogram of the logged view time variable (normalizes the curve)
+  geom_histogram(aes(x = log(view_time_perc), fill = ..count..), bins = 100) + 
+  theme_classic() + 
+  ylab('Count') + 
+  xlab('Log View Time %') + 
+  scale_fill_gradient2(low = ps_pink, mid = ps_purple, high = ps_orange, midpoint = 20) + 
+  theme(legend.position = 'none', text = element_text(size = 15))
+
+```
+
+The algorithm is now better tasked to perform relevant view times across course performance groups, and will avoid things like negative viewership predictions which would skew the royalty rates assigned by the model significantly.
+
+## New Demand Features
+
+Prior to retraining the Content Performance algorithm, an exploratory data analysis was performed to analyze two newly implemented demand features in tandem with the current compensation data that exists within the Content Performance framework. Even in the early stages of data cleaning and collection, it was determined that these internal and external demand features would likely provide huge advancements in the predictive capabilities of the view time model.
+
+### Internal Search Count
+
+The search count feature was implemented for this model training to represent internal demand among PS users. To create this variable, all searches on the PS platform within the last year were collected, cleaned, and aggregated through various text munging tools. Searches were then looped through a process that assigned them to level 3 tag concepts that matched the contents of the cleaned search query. These level 3 tags were then joined to the Content Performance data through the course. By joining these level 3 tags, the dataset utilized within the Content Performance framework can access relevant search counts for course concepts.
+
+[context redacted]
+
+The following graph visualizes the current distribution of search counts within the data:
+
+```{r}
+
+comp %>%
+  ggplot() + 
+  # histogram of search count distribution
+  geom_histogram(aes(x = search_cnt, fill = ..count..), bins = 75) + 
+  theme_classic() + 
+  # average search count value for reference
+  geom_vline(xintercept = mean(comp$search_cnt), linetype = 'dashed', alpha = 0.5) + 
+  ylab('Count') + 
+  xlab('Search Counts') + 
+  scale_fill_gradient2(low = ps_pink, mid = ps_purple, high = ps_orange, midpoint = 50) + 
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+Though search count values range from `r min(comp$search_cnt)` to `r max(comp$search_cnt)`, the distribution is largely right-skewed, with an average search count value of `r round(mean(comp$search_cnt), 0)`. While this may impact the new model's ability to predict extreme values, this phenomenon should improve as more data becomes available. It is also possible that future transformations of the search count variable may improve prediction accuracy if the model is retrained.
+
+```{r}
+
+kable(comp %>% select(quant_vt, search_cnt) %>% group_by(quant_vt) %>% summarise(search_cnt = round(mean(search_cnt), 0)), caption = "<b>Search Counts per Quantile<b>", align = "lr", col.names = c("Quantile", "Average Search Count")) %>%
+  kable_styling(full_width = FALSE, position = 'center', font_size = 15)
+
+```
+
+Overall, the relationship between search counts and viewership is generally positive and linear. When analyzing the average search counts per quantile (a metric that splits viewership into groups based on their percentile rank), this value increases as quantile group increases.
+
+```{r, message = FALSE, warning = FALSE}
+library(RColorBrewer)
+
+my_colors <- RColorBrewer::brewer.pal(9, "RdPu")[4:9]
+
+comp %>%
+  select(quant_vt, search_cnt, usage_year_month) %>% 
+  group_by(quant_vt, usage_year_month) %>% 
+  mutate(quant_vt = as.factor(quant_vt)) %>%
+  summarise(search_cnt = round(mean(search_cnt), 0)) %>%
+  ggplot(aes(group = quant_vt, color = quant_vt, shape = quant_vt)) +
+  geom_point(aes(x = usage_year_month, y = search_cnt), size = 3) +
+  geom_line(aes(x = usage_year_month, y = search_cnt)) +
+  theme_classic() +
+  labs(title = "Search Counts per Quantile", x = "Months", y = "Search Counts") +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  scale_color_manual(values = my_colors) +
+  scale_fill_manual(values = my_colors)
+  
+```
+
+More specifically, when analyzing quantile search counts over time, it appears that quantiles 1 and 0 sometimes garner more average search counts than quantile 2. This may be explained by content in quantile 2 being more niche than those quantiles.
+
+Ultimately, it is hypothesized that this relationship between search count and viewership will strengthen the model's ability to predict viewership when provided with historical and projected search counts.
+
+### External Demand Score
+
+The external demand variable is the second new feature implemented for this new model training. The PS Content Analytics team gathers market demand signals to provide insight into which market concepts are most popular. These signals are used in creating the overall demand ranking of concepts. 
+
+[context redacted]
+
+These external demand concepts are recorded as **level 3 tags**, which are then joined to the Content Performance framework through the course library. By joining these level 3 tags, the dataset utilized within the Content Performance framework can access relevant demand scores for each course. For training purposes, the demand scores in this exploration have been further joined to relevant level 2 tags to improve prediction accuracy.
+
+The following graph visualizes the current distribution of demand scores within the data:
+
+```{r}
+
+comp %>%
+  ggplot() + 
+  # select demand score data
+  geom_histogram(aes(x = demand_score, fill = ..count..), bins = 75) + 
+  theme_classic() + 
+  # add mean of demand score for reference
+  geom_vline(xintercept = mean(comp$demand_score), linetype = 'dashed', alpha = 0.5) + 
+  ylab('Count') + 
+  xlab('Demand Score') + 
+  scale_fill_gradient2(low = ps_pink, mid = ps_purple, high = ps_orange, midpoint = 25) + 
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+Currently, though demand scores can range from 0 to 1, the data available for training only ranges from `r round(min(comp$demand_score), 3)` to `r round(max(comp$demand_score), 3)`. While this may impact the new model's ability to predict extreme values, this phenomenon should improve as more data becomes available.
+
+```{r, warning = FALSE, message = FALSE}
+
+ggplot(comp, mapping = aes(x = demand_score, y = view_time_perc)) +
+  geom_point(color = ps_purple, alpha = 0.3, show.legend = FALSE) + 
+  # trend line to visualize relationship
+  geom_smooth(color = 'black') +
+  labs(title = "View time % and Demand", x = "Demand Score", y = "VT%") + 
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5)) +
+  ylim(0, 0.001)
+
+```
+
+Because of this limited range, the general relationship between demand and viewership is harder to measure. Initially, a positive trend can be observed when comparing the two, but the trend becomes less clear as data for certain demand scores is currently unavailable. As previously mentioned, this phenomenon should improve with more clarity as more demand data becomes available that can supply values for underrepresented ranges in the current data. 
+
+Trends can be visualized with a bit more clarity when analyzing viewership in its quantile format:
+
+```{r}
+
+kable(comp %>% select(quant_vt, demand_score) %>% group_by(quant_vt) %>% summarise(demand_score = round(mean(demand_score), 3)), caption = "<b>Demand Scores per Quantile<b>", align = "lr", col.names = c("Quantile", "Average Demand Score")) %>%
+  kable_styling(full_width = FALSE, position = 'center', font_size = 15)
+
+```
+
+When comparing demand scores per quantile, the average demand score is relatively equal across the different quantiles. Additionally, they are all close to the overall average demand score of **`r round(mean(comp$demand_score), 4)`**. This phenomenon is represented in more detail when visualizing the distribution of each quantile:
+
+```{r}
+
+ggplot(comp, aes(x = demand_score, y = quant_vt, group = quant_vt)) +
+  geom_boxplot(color = ps_purple, fill = ps_purple, alpha = 0.5) +
+  labs(title = 'Demand per Quantile', x = 'Demand Score', y = 'VT% Quantile') +
+  theme_classic() +
+  theme(text = element_text(size = 15), legend.position = 'none', plot.title = element_text(hjust = 0.5))
+
+```
+
+This generally equivalent spread is potentially explained by content being equally distributed across viewership quantiles regardless of their external demand score, meaning low-demand market concepts are being viewed on the PS platform and not penalized for being more niche. Ultimately, this distribution represents a diverse user base for content on the PS platform
+
+## Submodel Performance
+
+In order to implement these new features into the overall model for future viewership projections, submodels needed to be trained and tested for each of these features to see if demand scores and search counts could be accurately predicted individually. If the submodels are unable to accurately predict these demand values, the overall model would be referencing inaccurate values when making viewership predictions, which would skew results when making compensation offers. Therefore, it is vital that these submodels maintain a comfortable level of prediction accuracy.
+
+Both the internal and external demand variables were tested with two different models. One model made predictions based on the demand data when it was tagged to level 2 tags (more general tags), and the other model made predictions based on the demand data when it was tagged to level 3 tags (more niche tags).  The two models were then compared and the best model was selected for implementation into the overall demand and compensation model. After this analysis, it was determined that the internal model using level 3 tags and the external demand model using level 2 tags yielded the most reliable results.
+
+### Internal Demand Submodel
+
+When testing whether search counts should be joined to level 2 or level 3 tags, the model training on level 3 tags yielded the most reliable results. This is likely due to the niche, specific nature of PS platform searches, therefore linking internal search counts more closely to more granular tags. 
+
+With this finding, the following model distribution was created utilizing the XGBoost algorithm that trained on internal search counts linked to relevant level 3 tags from the PS Market Taxonomy.
+
+```{r}
+# values from internal submodel
+internal %>%
+  ggplot() +
+  geom_point(aes(x = search_cnt, y = predictions), alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, color = ps_purple) +
+  theme_classic() + 
+  labs(x = "Actual Search Counts", y = "Predicted Search Counts", title = "Actual vs. Predicted Search Counts") +
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+Overall, the internal submodel predicted search counts at a reasonable level of accuracy. The diagonal line displayed above has a slope of 1 and represents the intersection where predictions and actual search counts are the same. Though there are some outliers that are over or under projected, the majority of predictions are closely aligned with actual search counts, as shown by the model distribution following a positive, linear trend
+
+The following visualizations demonstrate the models predictive accuracy when analyzing highest and lowest residual tags. Though tags with high residuals have specific values that are the least accurate relative to other tags, the model may still have a ability to predict overall trends with reasonable accuracy. 
+
+```{r, include = FALSE, echo = FALSE}
+## l3 tags with lowest residuals 
+lowest_int_resid_l3 <- internal %>%
+  arrange(abs(residuals)) %>%
+  dplyr::select(level_3, month, age, q, search_cnt, predictions, residuals) %>%
+  distinct(level_3) %>%
+  head(5)
+
+## l3 tags with highest residuals
+highest_int_resid_l3 <- internal %>%
+  arrange(desc(abs(residuals))) %>%
+  dplyr::select(level_3, month, age, q, search_cnt, predictions, residuals) %>%
+  distinct(level_3) %>%
+  head(5)
+
+## data for highest residual l3 tags
+int_high <- internal %>%
+  dplyr::select(search_cnt, month, q, age, predictions, residuals, level_3) %>%
+  filter(level_3 %in% highest_int_resid_l3$level_3)
+
+## data for lowest residual l3 tags
+int_low <- internal %>%
+  dplyr::select(search_cnt, month, q, age, predictions, residuals, level_3) %>%
+  filter(level_3 %in% lowest_int_resid_l3$level_3)
+```
+
+
+```{r}
+# graphs for lowest residual l3 tags
+int_low %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = level_3, color = 'Predicted')) +
+  geom_line(aes(x = age, y = predictions, group = level_3, color = 'Predicted', linetype = 'Predicted')) +
+  geom_point(aes(x = age, y = search_cnt, group = level_3, color = 'Actual')) +
+  geom_line(aes(x = age, y = search_cnt, group = level_3, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Lowest Residual Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Search Count", values = c("Actual" = 'black', "Predicted" = ps_purple)) +
+  scale_linetype_manual(name = "Search Count", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~level_3)
+
+int_low %>%
+  group_by(level_3) %>%
+  summarise(`Average Search Count` = round(mean(search_cnt), 0),
+            `Average Prediction` = round(mean(predictions), 0),
+            `MAE` = round(mae(predictions, search_cnt), 0),
+            `RMSE` = round(rmse(predictions, search_cnt), 0),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+There are certain tags that the search count submodel does really well at predicting, on average. However, there are some tags, visualized below, that the submodel struggles to predict with the same level of accuracy:
+
+```{r}
+# highest residual l3 tags
+int_high %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = level_3, color = 'Predicted')) +
+  geom_line(aes(x = age, y = predictions, group = level_3, color = 'Predicted', linetype = 'Predicted')) +
+  geom_point(aes(x = age, y = search_cnt, group = level_3, color = 'Actual')) +
+  geom_line(aes(x = age, y = search_cnt, group = level_3, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Highest Residual Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Search Count", values = c("Actual" = 'black', "Predicted" = ps_purple)) +
+  scale_linetype_manual(name = "Search Count", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~level_3)
+
+int_high %>%
+  group_by(level_3) %>%
+  summarise(`Average Search Count` = round(mean(search_cnt), 0),
+            `Average Prediction` = round(mean(predictions), 0),
+            `MAE` = round(mae(predictions, search_cnt), 0),
+            `RMSE` = round(rmse(predictions, search_cnt), 0),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+It appears that the internal submodel struggles to initially predict tags with really large search counts. However, this phenomenon improves over time as the model relies on trends it has trained with.
+
+Overall, the internal submodel does a great job at predicting trends for level 3 tags, including tags with the highest residuals. Despite high-residual tags having predictions that are farther from their actual count value, the overall distribution is similar among predicted and actual values per tag, effectively demonstrating the model's ability to accurately predict trends, even when specific values are not exact. Additionally, many of the high-residual courses have the biggest gap in the first month of predictions, which is the hardest part of a trend for a model to predict. The fact that the model becomes more accurate as the age of the course increases is a positive indicator of the model's ability to learn and predict accurately as data becomes available. 
+
+The graph below compares the actual vs. predicted search counts for the level 3 tag in the visualization above that contains the highest residual value within this dataset, labelled as "other". This tag group was calculated by gathering the bottom 5% of searched tags and combining them into one collective group in order to enable functionality in production when encountering new or unfamiliar tags. 
+
+```{r}
+
+internal %>%
+  filter(level_3 == "other") %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = level_3, color = 'Predicted')) +
+  geom_line(aes(x = age, y = predictions, group = level_3, color = 'Predicted', linetype = 'Predicted')) +
+  geom_point(aes(x = age, y = search_cnt, group = level_3, color = 'Actual')) +
+  geom_line(aes(x = age, y = search_cnt, group = level_3, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Highest Searched Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Search Count", values = c("Actual" = 'black', "Predicted" = ps_purple)) +
+  scale_linetype_manual(name = "Search Count", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~level_3) +
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+Though the first month has a high discrepancy between actual and predicted search values for this "other" level 3 tag group, the rest of the predictions comfortably follow the actual distribution of search counts. Overall, this high residual value is not concerning as the model was still able to predict the general trend of this level 3 tag's search counts with reasonable accuracy.
+
+The following visualizations analyze the models predictive capability in regards to high and low search count values. Understanding the model's ability to predict accurately when given an outlier value provides insight into whether the model provides projections that unfairly target a specific type of content, whether it be especially niche, high-level, or both.
+
+```{r}
+## l3 tags with lowest search
+lowest_int_search_l3 <- internal %>%
+  arrange(search_cnt) %>%
+  dplyr::select(level_3, month, age, q, search_cnt, predictions, residuals) %>%
+  distinct(level_3) %>%
+  head(5)
+
+## l3 tags with highest search
+highest_int_search_l3 <- internal %>%
+  arrange(desc(search_cnt)) %>%
+  dplyr::select(level_3, month, age, q, search_cnt, predictions, residuals) %>%
+  distinct(level_3) %>%
+  head(5)
+
+## data for highest search l3 tags
+int_high_search <- internal %>%
+  dplyr::select(search_cnt, month, q, age, predictions, residuals, level_3) %>%
+  filter(level_3 %in% highest_int_search_l3$level_3)
+
+## data for lowest search l3 tags
+int_low_search <- internal %>%
+  dplyr::select(search_cnt, month, q, age, predictions, residuals, level_3) %>%
+  filter(level_3 %in% lowest_int_search_l3$level_3)
+```
+
+
+```{r}
+int_low_search %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = level_3, color = 'Predicted')) +
+  geom_line(aes(x = age, y = predictions, group = level_3, color = 'Predicted', linetype = 'Predicted')) +
+  geom_point(aes(x = age, y = search_cnt, group = level_3, color = 'Actual')) +
+  geom_line(aes(x = age, y = search_cnt, group = level_3, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Lowest Searched Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Search Count", values = c("Actual" = 'black', "Predicted" = ps_purple)) +
+  scale_linetype_manual(name = "Search Count", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~level_3, labeller = label_wrap_gen())
+
+int_low_search %>%
+  group_by(level_3) %>%
+  summarise(`Average Search Count` = round(mean(search_cnt), 0),
+            `Average Prediction` = round(mean(predictions), 0),
+            `MAE` = round(mae(predictions, search_cnt), 0),
+            `RMSE` = round(rmse(predictions, search_cnt), 0),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+The above visualizations demonstrate that the internal submodel tends to make more generalized, over-projected predictions for courses with lower search counts, causing many of them to be assigned the same prediction value from the model. This phenomenon is likely due to the model being trained on an insufficient number of courses with low search count values, which will improve as the model continues to train with more data. 
+
+
+```{r}
+int_high_search %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = level_3, color = 'Predicted')) +
+  geom_line(aes(x = age, y = predictions, group = level_3, color = 'Predicted', linetype = 'Predicted')) +
+  geom_point(aes(x = age, y = search_cnt, group = level_3, color = 'Actual')) +
+  geom_line(aes(x = age, y = search_cnt, group = level_3, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Highest Searched Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Search Count", values = c("Actual" = 'black', "Predicted" = ps_purple)) +
+  scale_linetype_manual(name = "Search Count", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~level_3, labeller = label_wrap_gen())
+
+int_high_search %>%
+  group_by(level_3) %>%
+  summarise(`Average Search Count` = round(mean(search_cnt), 0),
+            `Average Prediction` = round(mean(predictions), 0),
+            `MAE` = round(mae(predictions, search_cnt), 0),
+            `RMSE` = round(rmse(predictions, search_cnt), 0),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+The above visualizations demonstrate that the internal submodel does really well at predicting courses with higher search counts, with average predictions matching very closely to actual search values. While there may be concerns that this model indicates a potential to penalize courses with lower search counts, the overall model accuracy improves as the age of the tag/course increases, meaning these prediction values will only become more accurate as more data becomes available.
+
+Additionally, considering the current range of search counts spans between `r min(range(internal$search_cnt))` and `r max(range(internal$search_cnt))`, residuals spanning a few hundred values for these lower search count tags is a comfortable level of accuracy. 
+
+Overall, the model created for the internal search count data with level 3 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final compensation and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
+
+### External Demand Submodel
+
+When testing whether external demand scores should be joined to level 2 or level 3 tags, the model training on level 2 tags yielded the most reliable results. This is likely due to the more general nature of external market demand, therefore linking demand scores more closely to more general tags. 
+
+With this finding, the following model distribution was created utilizing the XGBoost algorithm that trained on external demand scores linked to relevant level 2 tags from the PS Market Taxonomy.
+
+```{r}
+
+external %>%
+  ggplot() +
+  geom_point(aes(x = demand, y = predictions), alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1, color = ps_purple,) +
+  theme_classic() +
+  labs(x = "Actual Demand Score", y = "Predicted Demand Score", title = "Actual vs. Predicted Demand Scores") +
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+Overall, the external submodel predicted demand scores at a reasonable level of accuracy. The diagonal line displayed above has a slope of 1 and represents the intersection where predictions and actual demand scores are the same. Though there is a range of actual scores that plateau at the same predicted scores, the majority of predictions are closely aligned with actual demand scores, as shown by the model distribution following a positive, linear trend
+
+```{r, warning = FALSE, message = FALSE, out.width="100%"}
+
+external %>%
+  ggplot() +
+  geom_histogram(aes(x = demand, color = 'Actual', fill = "Actual"), alpha = 0.5, bins = 40) +
+  geom_histogram(aes(x = predictions, color = "Predicted", fill = "Predicted"), alpha = 0.5, bins = 40) +
+  theme_classic() +
+  scale_fill_manual(name = "Demand Scores", values = c("Actual" = ps_purple, "Predicted" = ps_orange)) +
+  scale_color_manual(name = "Demand Scores", values = c("Actual" = ps_purple, "Predicted" = ps_orange)) +
+  labs(title = "Distribution of Demand Scores", x = "Demand Score")
+
+```
+
+This accuracy is further visualized at a general level when comparing the overall distribution of actual demand scores and predicted demand scores
+
+The following visualizations demonstrate the models predictive accuracy when analyzing highest and lowest residual tags. As was the case with the internal model, though tags with high residuals have specific values that are the least accurate relative to other tags, the external model may still have a ability to predict overall trends with reasonable accuracy. 
+
+```{r}
+## l2 tags with lowest residuals
+lowest_ext_resid_l2 <- external %>%
+  arrange(abs(residuals)) %>%
+  dplyr::select(l2, month, age, q, demand, predictions, residuals) %>%
+  distinct(l2) %>%
+  head(5)
+
+## l2 tags with highest residuals
+highest_ext_resid_l2 <- external %>%
+  arrange(desc(abs(residuals))) %>%
+  dplyr::select(l2, month, age, q, demand, predictions, residuals) %>%
+  distinct(l2) %>%
+  head(5)
+
+## data for highest residual l2 tags
+ext_high <- external %>%
+  dplyr::select(demand, month, q, age, predictions, residuals, l2) %>%
+  filter(l2 %in% highest_ext_resid_l2$l2)
+
+## data for lowest residual l2 tags
+ext_low <- external %>%
+  dplyr::select(demand, month, q, age, predictions, residuals, l2) %>%
+  filter(l2 %in% lowest_ext_resid_l2$l2)
+```
+
+```{r}
+ext_low %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = l2, color = "Predicted")) +
+  geom_line(aes(x = age, y = predictions, group = l2, color = "Predicted", linetype = "Predicted")) +
+  geom_point(aes(x = age, y = demand, group = l2, color = 'Actual')) +
+  geom_line(aes(x = age, y = demand, group = l2, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Lowest Residual Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Demand Score", values = c('Actual' = 'black', 'Predicted' = ps_purple)) +
+  scale_linetype_manual(name = "Demand Score", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~l2, labeller = label_wrap_gen())
+
+ext_low %>%
+  group_by(l2) %>%
+  summarise(`Average Demand` = mean(demand),
+            `Average Prediction` = mean(predictions),
+            `MAE` = mae(predictions, demand),
+            `RMSE` = rmse(predictions, demand),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+There are certain tags that the demand score submodel does really well at predicting, on average. However, there are some tags, visualized below, that the submodel struggles to predict with the same level of accuracy:
+
+```{r}
+ext_high %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = l2, color = "Predicted")) +
+  geom_line(aes(x = age, y = predictions, group = l2, color = "Predicted", linetype = "Predicted")) +
+  geom_point(aes(x = age, y = demand, group = l2, color = 'Actual')) +
+  geom_line(aes(x = age, y = demand, group = l2, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Highest Residual Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Demand Score", values = c('Actual' = 'black', 'Predicted' = ps_purple)) +
+  scale_linetype_manual(name = "Demand Score", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~l2, labeller = label_wrap_gen())
+
+ext_high %>%
+  group_by(l2) %>%
+  summarise(`Average Demand` = mean(demand),
+            `Average Prediction` = mean(predictions),
+            `MAE` = mae(predictions, demand),
+            `RMSE` = rmse(predictions, demand),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+Overall, the external submodel does a great job at predicting trends for level 2 tags, including tags with the highest residuals. Despite high-residual tags having predictions that are farther from their actual count value, the overall distribution is similar among predicted and actual values per tag, effectively demonstrating the model's ability to accurately predict trends, even when specific values are not exact. However, the model does appear to be assigning certain tags the same demand score predictions, which could be due to an insufficient amount of current data.
+
+The following visualizations analyze the models predictive capability in regards to high and low demand score values. Understanding the model's ability to predict accurately when given an outlier value provides insight into whether the model provides projections that unfairly target a specific type of content, whether it be especially niche, high-level, or both.
+
+```{r}
+## l2 tags with lowest demand
+lowest_ext_demand_l2 <- external %>%
+  arrange(demand) %>%
+  dplyr::select(l2, month, age, q, demand, predictions, residuals) %>%
+  distinct(l2) %>%
+  head(5)
+
+## l2 tags with highest demand
+highest_ext_demand_l2 <- external %>%
+  arrange(desc(demand)) %>%
+  dplyr::select(l2, month, age, q, demand, predictions, residuals) %>%
+  distinct(l2) %>%
+  head(5)
+
+## data for highest demand l2 tags
+ext_high_demand <- external %>%
+  dplyr::select(demand, month, q, age, predictions, residuals, l2) %>%
+  filter(l2 %in% highest_ext_demand_l2$l2)
+
+## data for lowest demand l2 tags
+ext_low_demand <- external %>%
+  dplyr::select(demand, month, q, age, predictions, residuals, l2) %>%
+  filter(l2 %in% lowest_ext_demand_l2$l2)
+```
+
+```{r}
+ext_low_demand %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = l2, color = "Predicted")) +
+  geom_line(aes(x = age, y = predictions, group = l2, color = "Predicted", linetype = "Predicted")) +
+  geom_point(aes(x = age, y = demand, group = l2, color = 'Actual')) +
+  geom_line(aes(x = age, y = demand, group = l2, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Lowest Demanded Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Demand Score", values = c('Actual' = 'black', 'Predicted' = ps_purple)) +
+  scale_linetype_manual(name = "Demand Score", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~l2, labeller = label_wrap_gen())
+
+ext_low_demand %>%
+  group_by(l2) %>%
+  summarise(`Average Demand` = mean(demand),
+            `Average Prediction` = mean(predictions),
+            `MAE` = mae(predictions, demand),
+            `RMSE` = rmse(predictions, demand),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+The above visualization demonstrates that the external submodel tends to  over-predict low demand scores. This phenomenon is likely due to the model being trained on an insufficient number of tags with low demand scores, which should improve as the model continues to train with more data.
+
+A similar trend is observed when observing high demand scores:
+
+```{r}
+ext_high_demand %>%
+  ggplot() +
+  geom_point(aes(x = age, y = predictions, group = l2, color = "Predicted")) +
+  geom_line(aes(x = age, y = predictions, group = l2, color = "Predicted", linetype = "Predicted")) +
+  geom_point(aes(x = age, y = demand, group = l2, color = 'Actual')) +
+  geom_line(aes(x = age, y = demand, group = l2, color = 'Actual', linetype = 'Actual')) +
+  theme_classic() +
+  scale_x_continuous(breaks=seq(0,13,1)) +
+  labs(title = "Predicted vs. Actual -- Highest Demanded Tags", x = "Age (months)", y = "Search Count") +
+  scale_color_manual(name = "Demand Score", values = c('Actual' = 'black', 'Predicted' = ps_purple)) +
+  scale_linetype_manual(name = "Demand Score", values = c('Actual' = 1, 'Predicted' = 2)) +
+  facet_wrap(~l2, labeller = label_wrap_gen())
+
+ext_high_demand %>%
+  group_by(l2) %>%
+  summarise(`Average Demand` = mean(demand),
+            `Average Prediction` = mean(predictions),
+            `MAE` = mae(predictions, demand),
+            `RMSE` = rmse(predictions, demand),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+The above visualization demonstrates that the external submodel tends to under-predict high demand. This phenomenon is likely due to the model being trained on an insufficient number of tags with high demand scores, which will improve as the model continues to train with more data.
+
+Though demand scores can range from 0 to 1 , the range of demand scores currently utilized for training the external submodel spans between `r round(min(range(external$demand)), 2)` and `r round(max(range(external$demand)), 2)`. Because the model currently lacks data outside of this range, it centralizes its predictions more than it would if given a sufficient amount of data ranging from 0 to 1. 
+
+Despite this, the average difference between predicted and actual demand scores -- known as the residual -- generated by the current model is **`r round(mae(external$demand, external$predictions), 4)`**, which is relatively small considering values range from 0 to 1. This is a very promising level of accuracy considering the model has only been provided with 5 months of observations.
+
+Overall, the model created for the external demand score data with level 2 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final compensation and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
+
+## Algorithmic Selection & Training
+
+Because market taxonomy tags provide differentiation between subject matters in the course library and give insight into specific areas of technical expertise contained in the course, the tags were treated as factor variables. Factor variables such as these result in an exponential increase in dimensionality in the feature set. Things such as tree-wise methods using Random Forest algorithms and OLS regression techniques are incapable of handling training data of this size. However, tree based methods are still available that can leverage computing power to handle training operations while still producing robust algorithms. One in particular that has been famous for winning numerous Kaggle Competitions is **XGBoost**. XGBoost utilizes gradient boosting techniques to speed up its operations, as well as leveraging things such as parallelization, block structure learning, and hyperparameter tuning. These feature were key in developing a robust prediction algorithm, especially that of hyperparameter tuning.
+
+Thanks to the hyperparameters available in XGBoost, a training data set of this size and dimensionality can be used to its fullest capacity while still taking measures to avoid overfitting. In order to maximize the capabilities of hyperparameter tuning, [Model Based Optimization (MBO)](https://bikeactuary.com/datasci/bayesian-mbo) was implemented to determine the best range of hyperparameters to test while still preserving computing power and time. The optimal hyperparameters found are as follows:
+
+```{r, echo = FALSE}
+
+hyper <- c("eta", "gamma", "max_depth", "min_child_weight", "subsample"
+           , "colsample_bytree", "max_delta_step", "nthread", "nrounds")
+value <- c(0.1327715, 1.010278, 18, 250, 0.799809, 0.7999422, 4.795033, 0, 5445)
+
+df <- data.frame(hyper, value)
+
+df %>%
+  mutate(value = round(value, 2)) %>%
+  rename('Hyperparameter' = 'hyper', 'Tuned Value' = 'value') %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+Using the hyperparameters determined above, the current iteration of the model was trained and used to predict viewership for the 5 months of historical data currently available. 
+
+## Final Model Performance on Test Data
+
+In terms of actual error, for a test set of data the algorithm’s mean absolute error is **`r round(mae(final_model$ac_predictions, final_model$view_time_perc), 5)`**. This means that on average, the model is only approximately **`r round(mae(final_model$ac_predictions, final_model$view_time_perc), 5)`** points away from the actual view time percentage of a course in a given month. Overall, this is well within a reasonable range for predicting the general performance outlook for a course.
+
+```{r, warning = FALSE, message = FALSE}
+
+final_model %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = ac_predictions), alpha = 0.5, color = ps_purple) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  xlim(0, 0.001) +
+  ylim(0, 0.001) +
+  labs(title = "Actual vs. Predicted Viewership", x = "VT%", y = "Predicted VT%") +
+  theme(text = element_text(size = 15), legend.position = 'none')
+
+```
+
+While the distribution is initially linear, it appears that the model struggles to predict larger viewership values with the same level of accuracy as those with lower viewership values. This is potentially explained by a lower number of courses with high viewership values, making it more difficult for the model to predict as accurately. As more data becomes available for the model to train with, it is anticipated that this phenomenon should improve.
+
+Further examining specific areas of performance, determining the scalability of accuracy across different groups is paramount. If the model performs well across different quantile groups then the confidence in avoiding misprojection increases even more so:
+
+```{r}
+
+final_model %>%
+  group_by(quant_vt) %>%
+  summarise(`Average View Time %` = mean(view_time_perc),
+            `Average Prediction` = mean(ac_predictions),
+            `MAE` = mae(ac_predictions, view_time_perc),
+            `RMSE` = rmse(ac_predictions, view_time_perc),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+As observed previously, the model seems to struggle the most with predicting courses in the highest viewership quantile, generating a mean absolute error of 0.0012 and root mean squared error of 0.003. Additionally, it appears that the model over-predicts the lowest viewership quantile and under-predicts the highest viewership quantile. This may suggest that there is not enough data with extremely low or high viewership values, causing misprojections.
+
+When analyzing some of these extremely high and low viewership courses, this phenomenon can be observed more closely:
+
+```{r}
+
+# 10 lowest viewership courses
+low_view <- final_model %>%
+  arrange(view_time_perc) %>%
+  select(course_title, usage_year_month, view_time_perc, ac_predictions, demand_score, search_cnt) %>%
+  distinct(course_title) %>%
+  head(5)
+
+# 10 highest viewership courses
+high_view <- final_model %>%
+  arrange(desc(view_time_perc)) %>%
+  select(course_title, usage_year_month, view_time_perc, ac_predictions, demand_score, search_cnt) %>%
+  distinct(course_title) %>%
+  head(5)
+
+# data for 10 lowest
+ac_low_view <- final_model %>%
+  select(course_title, usage_year_month, view_time_perc, ac_predictions, demand_score, search_cnt) %>%
+  filter(course_title %in% low_view$course_title)
+
+# data for 10 highest
+ac_high_view <- final_model %>%
+  select(course_title, usage_year_month, view_time_perc, ac_predictions, demand_score, search_cnt) %>%
+  filter(course_title %in% high_view$course_title)
+  
+```
+
+```{r}
+ac_low_view %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, group = course_title, color = "New Model")) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, group = course_title, color = "New Model", linetype = 'New Model')) +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, group = course_title, color = "Actual")) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, group = course_title, color = "Actual", linetype = 'Actual')) +
+  theme_classic() +
+  scale_linetype_manual(name = "Viewership", values = c("Actual" = 1, "New Model" = 2)) +
+  scale_color_manual(name = "Viewership", values = c("Actual" = 'black', "New Model" = ps_purple)) +
+  labs(title = "Predicted vs. Actual -- Lowest Viewership Courses", x = "Age (months)", y = "VT%") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~course_title, labeller = label_wrap_gen())
+
+ac_low_view %>%
+  group_by(course_title) %>%
+  summarise(`Average Viewership %` = mean(view_time_perc),
+            `Average Prediction` = mean(ac_predictions),
+            `MAE` = mae(ac_predictions, view_time_perc),
+            `RMSE` = rmse(ac_predictions, view_time_perc),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+Currently, the model appears to slightly overproject predictions for courses with low viewership. A similar trend is observed when analyzing courses with high viewership:
+
+```{r}
+ac_high_view %>%
+  mutate(usage_year_month = as.Date(usage_year_month)) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, group = course_title, color = "New Model")) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, group = course_title, color = "New Model", linetype = 'New Model')) +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, group = course_title, color = "Actual")) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, group = course_title, color = "Actual", linetype = 'Actual')) +
+  theme_classic() +
+  scale_linetype_manual(name = "Viewership", values = c("Actual" = 1, "New Model" = 2)) +
+  scale_color_manual(name = "Viewership", values = c("Actual" = 'black', "New Model" = ps_purple)) +
+  labs(title = "Predicted vs. Actual -- Highest Viewership Courses", x = "Age (months)", y = "VT%") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  facet_wrap(~course_title, labeller = label_wrap_gen()) +
+  theme(plot.title = element_text(hjust = 0.5, size = 15), axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_x_date(date_labels = "%b %y")
+
+ac_high_view %>%
+  group_by(course_title) %>%
+  summarise(`Average Viewership %` = mean(view_time_perc),
+            `Average Prediction` = mean(ac_predictions),
+            `MAE` = mae(ac_predictions, view_time_perc),
+            `RMSE` = rmse(ac_predictions, view_time_perc),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+While the model appears to slightly overproject predictions for courses with low viewership, the model also underprojects predictions for courses with high viewership. This phenomenon is most likely due to the lack of data with extremely low or high viewership percentages, causing the model to centralize predictions within a smaller range. The model is expected to improve its predictions in these extreme areas as more data becomes available over time.
+
+The variable importance of this new model gives insight into some of the drivers of view time percentage predictions, below are some of the most important features:
+
+```{r, message = FALSE, warning = FALSE}
+
+xgb_imp <- snowflake_query("SELECT * FROM [SNOWFLAKE TABLE]")
+
+xgb_imp %>%
+  ggplot() +
+  geom_bar(aes(x = gain, y = reorder(feature, gain), fill = gain), stat = 'identity') +
+  scale_fill_gradient(low = ps_pink, high = ps_orange) + 
+  guides(fill = 'none') +
+  theme_classic() + 
+  theme(text = element_text(size = 15)) +
+  ylab(NULL) +
+  labs(title = 'Top 15 Features') +
+  scale_x_continuous(expand = c(0,0))
+
+```
+
+Both newly implemented demand features appear as the second and third most important features impacting the model, meaning their inclusion in the model has a significant impact on the model's predictive performance. This also means that submodel accuracy of these features is imperative to the predictive capabilities of the overall model.
+
+Some other notable features include the duration of a course, the number of total tags a course has (n_tags_total), and whether a course is the first course in a path (average_position_0). The model heavily relies on these top features when generating viewership predictions because they provide the most valuable insight as the model trains.
+
+### Submodel Capability in New Model
+
+In order for this new model to be useful in providing future viewership projections, it is important to analyze its performance when using predicted internal and external demand values rather than historical or actual values. If the new model is able to predict relatively well when using the projected submodel outputs, this demonstrates a strength in not just viewership projections, but internal and external demand projections as well. 
+
+```{r, include = FALSE, echo = FALSE}
+
+preds_model$usage_year_month <- as.Date(preds_model$usage_year_month)
+
+final_model_combined <- final_model %>%
+  select(course_name, course_title, usage_year_month, view_time_perc, ac_predictions, demand_score, search_cnt) %>%
+  left_join(preds_model, by = c("course_name", "course_title", "usage_year_month", "view_time_perc"))
+
+# round search counts to whole numbers
+final_model_combined$search_preds <- round(final_model_combined$search_preds, 0)
+# label search predictions as over or under projected
+final_model_combined$search_proj <- ifelse(final_model_combined$search_preds > final_model_combined$search_cnt, 'overprojected', 'underprojected')
+# label demand predictions as over or under projected
+final_model_combined$demand_proj <- ifelse(final_model_combined$demand_preds > final_model_combined$demand_score, 'overprojected', 'underprojected')
+# label viewership predictions as over or under projected
+final_model_combined$view_proj <- ifelse(final_model_combined$pred_view_time_perc > final_model_combined$view_time_perc, 'overprojected', 'underprojected')
+
+final_model_combined <- final_model_combined %>%
+  filter(!is.na(final_model_combined$pred_view_time_perc))
+
+```
+
+Initially, the new model predicted viewership using actual internal and external demand values; however, in order to measure the predictive accuracy of the demand submodels when implemented in the overall model, the new model also predicted viewership using these predicted demand values. Using actual values, the mean absolute error between predicted and actual viewership is **`r mae(final_model_combined$view_time_perc, final_model_combined$ac_predictions)`**, whereas the mean absolute error when using predicted demand values is **`r mae(final_model_combined$view_time_perc, final_model_combined$pred_view_time_perc)`**. This represents an error increase of about **1.85%**. Though this value is a bit higher when using predicted demand values, the overall level of accuracy is still reasonable and comparable to the model with actual values. Additionally, this value is expected to improve as more data becomes available to strengthen the predictive capability of both the demand submodels and the overall viewership model.
+
+```{r, warning = FALSE, message = FALSE}
+
+(final_model_combined %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = pred_view_time_perc), alpha = 0.5, color = ps_purple) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  xlim(0, 0.001) +
+  ylim(0, 0.001) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Predicted Demand", x = "VT%", y = "Predicted VT%")) +
+  
+(final_model_combined %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = ac_predictions), alpha = 0.5, color = ps_orange) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  xlim(0, 0.001) +
+  ylim(0, 0.001) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  labs(title = "Actual Demand", x = "VT%", y = "Predicted VT%")) + plot_annotation(title = "Actual vs. Predicted Viewership") + plot_layout(ncol = 1) & theme(text = element_text(size = 15))
+
+```
+
+Overall, the distribution of actual v. predicted viewership values is essentially identical when comparing projections based on predicted demand versus actual demand.
+
+When analyzing demand scores that were over-projected versus demand scores that were under-projected, it appears that the model predicts viewership relatively equally for both, with no group being generally penalized for misprojections.
+
+```{r, warning = FALSE, message = FALSE}
+final_model_combined %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = pred_view_time_perc), alpha = 0.5, color = ps_purple) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  xlim(0, 0.001) +
+  ylim(0, 0.001) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Actual v. Predicted Based on Projected Demand Score", x = "VT%", y = 'Predicted VT%') +
+  facet_grid(~demand_proj) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5))
+
+final_model_combined %>%
+  group_by(demand_proj) %>%
+  summarise(`Average View Time %` = mean(view_time_perc),
+            `Average Prediction` = mean(pred_view_time_perc),
+            `MAE` = mae(pred_view_time_perc, view_time_perc),
+            `RMSE` = rmse(pred_view_time_perc, view_time_perc),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+Though there appears to be more demand scores that are underprojected versus overprojected, viewership predictions do not appear to be impacted by under- or over-projection of demand scores, with the distributions looking relatively similar.
+
+```{r, warning = FALSE, message = FALSE}
+final_model_combined %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = pred_view_time_perc), alpha = 0.5, color = ps_purple) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  xlim(0, 0.001) +
+  ylim(0, 0.001) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Actual v. Predicted Based on Projected Search Count", x = "VT%", y = 'Predicted VT%') +
+  facet_grid(~search_proj) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5))
+
+final_model_combined %>%
+  group_by(search_proj) %>%
+  summarise(`Average View Time %` = mean(view_time_perc),
+            `Average Prediction` = mean(pred_view_time_perc),
+            `MAE` = mae(pred_view_time_perc, view_time_perc),
+            `RMSE` = rmse(pred_view_time_perc, view_time_perc),
+            `# of Observations` = n()) %>%
+  kbl() %>%
+  kable_styling(font_size = 15, full_width = F)
+
+```
+
+Though there appears to be more demand scores that are underprojected versus overprojected, search counts appear to be equally under- and over-projected by the submodel. Additionally, viewership predictions do not appear to be impacted by under- or over-projection of search counts, with the distributions looking relatively similar.
+
+```{r, out.width= "100%"}
+# compares new model with actual values, new model with predictions, 
+# and actual viewership values on average over the past few months
+
+final_model_combined %>%
+  select(usage_year_month, view_time_perc, ac_predictions, pred_view_time_perc) %>%
+  group_by(usage_year_month) %>%
+  summarise(view_time_perc = mean(view_time_perc),
+            pred_view_time_perc = mean(pred_view_time_perc),
+            ac_predictions = mean(ac_predictions)) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, color = "Actual")) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, color = "Actual", linetype = "Actual")) +
+  geom_point(aes(x = usage_year_month, y = pred_view_time_perc, color = "New Model - with predictions")) +
+  geom_line(aes(x = usage_year_month, y = pred_view_time_perc, color = "New Model - with predictions", linetype = "New Model - with predictions")) +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, color = "New Model")) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, color = "New Model", linetype = "New Model")) +
+  scale_color_manual(name = "Predictions", values = c("Actual" = 'black', "New Model - with predictions" = ps_purple, "New Model" = ps_orange)) +
+  scale_linetype_manual(name = "Predictions", values = c("Actual" = 1, "New Model - with predictions" = 2, "New Model" = 3)) +
+  scale_x_date(date_labels = "%b %y") +
+  theme_classic() +
+  labs(title = "Average Monthly Viewership Predictions", x = "Months", y = "Viewership %") +
+  ylim(0, 0.001) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
+ 
+```
+
+When analyzing average monthly viewership since December 2021, both the new model with actual values and the new model with projected values slightly underproject actual viewership. As explained previously, this is most likely due to an insufficient amount of high-viewership courses for the models to train on, as it is more difficult to predict when a course will perform extraordinarily well.
+
+Although it may appear that the projected value and actual value models are identical in the above graph, the visualization below demonstrates the nuance between the two models:
+
+```{r, out.width = "100%"}
+
+# comparing new model with predictions and new model with actual values more closely
+final_model_combined %>%
+  select(usage_year_month, ac_predictions, pred_view_time_perc) %>%
+  group_by(usage_year_month) %>%
+  summarise(pred_view_time_perc = mean(pred_view_time_perc),
+            ac_predictions = mean(ac_predictions)) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = pred_view_time_perc, color = "New Model - with predictions")) +
+  geom_line(aes(x = usage_year_month, y = pred_view_time_perc, color = "New Model - with predictions", linetype = "New Model - with predictions")) +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, color = "New Model")) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, color = "New Model", linetype = "New Model")) +
+  scale_color_manual(name = "Predictions", values = c("New Model - with predictions" = ps_purple, "New Model" = ps_orange)) +
+  scale_linetype_manual(name = "Predictions", values = c("New Model - with predictions" = 2, "New Model" = 3)) +
+  scale_x_date(date_labels = "%b %y") +
+  theme_classic() +
+  labs(title = "Average Monthly Viewership Predictions", x = "Months", y = "Viewership %") +
+  ylim(0.00016, 0.00019) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5), axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+Despite slight differences, utilizing the new model when it references predicted demand values yields nearly identical results to the new model when it references actual demand values. This demonstrates significant predictive capability from both the internal and external submodels when estimating actual demand values, and provides a comfortable level of accuracy for viewership predictions when using demand projections.  
+
+### New vs. Old Model Comparison 
+
+It's valuable to compare the predictive capabilities of this new model with the current model in production when both are tested on the same data. The current model in production has been training on historical data since 2015, while the new model developed for this exploration has only been able to train on data since December 2021. If the new model can perform in a way that is even remotely comparable to the performance of the current model in production, there are huge implications for future performance as more data becomes available.
+
+The current model in production has a mean absolute error of **`r round(mae(final_model$br_predictions, final_model$view_time_perc), 5)`**, while the new model in development has a mean absolute error of **`r round(mae(final_model$ac_predictions, final_model$view_time_perc), 5)`**. This means that the new model is only **`r round(mae(final_model$ac_predictions, final_model$view_time_perc), 5) - round(mae(final_model$br_predictions, final_model$view_time_perc), 5)`** more points away from the actual view time percentage of a course in a given month than the current model in production. This is a difference of about **8.57%**. Considering the new model has only trained on a few months of data, this finding has huge implications for the future strength and potential performance improvement over previous models over time.
+
+```{r}
+
+# comparing new model, current model, and actual values
+final_model %>%
+  select(usage_year_month, view_time_perc, ac_predictions, br_predictions) %>%
+  group_by(usage_year_month) %>%
+  summarise(view_time_perc = mean(view_time_perc),
+            ac_predictions = mean(ac_predictions),
+            br_predictions = mean(br_predictions)) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, color = "Actual")) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, color = "Actual", linetype = "Actual")) +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, color = "New Model")) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, color = "New Model", linetype = "New Model")) +
+  geom_point(aes(x = usage_year_month, y = br_predictions, color = "Current Model")) +
+  geom_line(aes(x = usage_year_month, y = br_predictions, color = "Current Model", linetype = "Current Model")) +
+  scale_color_manual(name = "Predictions", values = c("Actual" = 'black', "New Model" = ps_purple, "Current Model" = ps_orange)) +
+  scale_linetype_manual(name = "Predictions", values = c("Actual" = 1, "New Model" = 2, "Current Model" = 4)) +
+  scale_x_date(date_labels = "%b %Y") +
+  theme_classic() +
+  labs(title = "Average Monthly Viewership Predictions", x = "Months", y = "Viewership %") +
+  ylim(0, 0.00075) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5))
+
+```
+
+Overall, the average predictive accuracy from December 2021 to May 2022 increased when using the new model compared to the current model. Though both models are still underprojecting average viewership, the goal is that the new model will become stronger over time as more data becomes available. 
+
+The current model's overall predictive accuracy can be visualized below:
+
+```{r, warning = FALSE, message = FALSE}
+(final_model %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = br_predictions), alpha = 0.5, color = ps_orange) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  labs(x = "Actual VT%", y = "Predicted VT%", title = "Actual vs. Predicted Viewership -- Current Model") +
+  xlim(0, 0.001) +
+  ylim(0, 0.001)) + plot_layout(ncol = 1) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5))
+```
+
+Currently, the model in production tends to underproject actual viewership, especially as viewership increases. 
+
+[additional interpretation redacted]
+
+The following visualization compares the predictive capability of the new model and the capability of the current model:
+
+```{r, warning = FALSE, message = FALSE}
+(final_model %>%
+  ggplot() +
+  geom_point(aes(x = view_time_perc, y = ac_predictions, color = 'New'), alpha = 0.5) +
+  geom_point(aes(x = view_time_perc, y = br_predictions, color = 'Current'), alpha = 0.5) +
+  geom_abline(intercept = 0, slope = 1) +
+  theme_classic() +
+  labs(x = "Actual VT%", y = "Predicted VT%", title = "Actual vs. Predicted Viewership") +
+  scale_color_manual(name = "Predictions", values = c('Current' = ps_orange, 'New' = ps_purple)) +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  xlim(0, 0.001) +
+  ylim(0, 0.001))
+
+```
+
+Though the new model has a wider variance than the current model, the new model has projections that more closely align with actual viewership. Rather than consistently underprojecting viewership like the current model, the new model contains both over- and under-projections.
+
+This accuracy can be visualized more closely when analyzing both models' performance for specific viewership quantiles:
+
+```{r, include = FALSE, echo = FALSE}
+quantiles <- final_model %>%
+  select(quant_vt, usage_year_month, view_time_perc, ac_predictions, br_predictions) %>%
+  group_by(quant_vt, usage_year_month) %>%
+  summarise(view_time_perc = mean(view_time_perc), ac_predictions = mean(ac_predictions), br_predictions = mean(br_predictions))
+```
+
+```{r, out.width = "100%", out.height = "100%"}
+#comparing new model, current model, and actual values per quantile
+quantiles %>%
+  filter(quant_vt != 4, quant_vt != 3) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, linetype = 'Actual', group = quant_vt)) +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, color = 'New Model', group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, linetype = 'New Model', color = 'New Model', group = quant_vt)) +
+  geom_point(aes(x = usage_year_month, y = br_predictions, color = 'Current Model', group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = br_predictions, linetype = 'Current Model', color = 'Current Model', group = quant_vt)) +
+  facet_grid(~quant_vt) +
+  theme_classic() +
+  scale_linetype_manual(name = "Viewership", values = c("Actual" = 1, "New Model" = 2, "Current Model" = 4)) +
+  scale_color_manual(name = "Viewership", values = c("Actual" = 'black', "New Model" = ps_purple, "Current Model" = ps_orange)) +
+  labs(x = "Date", y = "VT%") +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+
+quantiles %>%
+  filter(quant_vt != 0, quant_vt != 1, quant_vt != 2) %>%
+  ggplot() +
+  geom_point(aes(x = usage_year_month, y = view_time_perc, group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = view_time_perc, linetype = 'Actual', group = quant_vt)) +
+  geom_point(aes(x = usage_year_month, y = ac_predictions, color = 'New Model', group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = ac_predictions, linetype = 'New Model', color = 'New Model', group = quant_vt)) +
+  geom_point(aes(x = usage_year_month, y = br_predictions, color = 'Current Model', group = quant_vt)) +
+  geom_line(aes(x = usage_year_month, y = br_predictions, linetype = 'Current Model', color = 'Current Model', group = quant_vt)) +
+  facet_grid(~quant_vt) +
+  theme_classic() +
+  scale_linetype_manual(name = "Viewership", values = c("Actual" = 1, "New Model" = 2, "Current Model" = 4)) +
+  scale_color_manual(name = "Viewership", values = c("Actual" = 'black', "New Model" = ps_purple, "Current Model" = ps_orange)) +
+  labs(x = "Date", y = "VT%") +
+  theme(text = element_text(size = 15), plot.title = element_text(hjust = 0.5)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + plot_layout(nrow = 2)
+
+
+```
+
+Currently, there are certain quantiles, namely 0 and 1, where the current model has more accurate viewership predictions. However, the new model is more accurate when predicting quantiles 2 and 3. Essentially, this can be interpreted as the current model being more accurate when predicting low viewership courses, and the new model being more accurate when predicting high viewership courses. However, both models struggle to predict courses in the highest viewership quantile due to the extreme values that are contained in that group. 
+
+## Future Recommendations
+
+The newly implemented features yielded results that aligned with the hypotheses of the Content Analytics team. By utilizing internal PS and external market demand metrics, a model trained on 6 months of available data was able to perform at a level nearly identical to the current model that has trained on data since 2015.
+
+Though there are limitations to this new model, it ultimately performs at a level of accuracy that is comparable to the current model. This new model has been able to replicate trends in ways that match and even outperform the current model, with an average overall error that is only **8.57%** larger. Though there are limitations in predictive accuracy, it is anticipated that as the model trains on more data in the coming months, the new model will see an even bigger increase in predictive accuracy, leading to improved compensation offers. 
+
+As the new and current models currently perform relatively equally, it is best to continue using the current model as it has trained on substantially more data; however, the new model should continue to be trained and assessed as more data becomes available, as it is anticipated that the new model will eventually surpass the predictive capability of the current model. 
+
+<br>
+
+<br>
