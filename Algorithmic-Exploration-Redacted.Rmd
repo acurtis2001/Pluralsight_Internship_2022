@@ -1,5 +1,5 @@
 ---
-title: "Algorithmic Exploration with Demand & Compensation Data"
+title: "Algorithmic Exploration with Demand & Content Performance Data"
 author: "Aubree Curtis, Data Analyst Intern | Brayden Ross, Senior Data Analyst"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -238,7 +238,7 @@ The purpose of this project is to expand the data currently utilized in the trai
 
 “Course Performance” is difficult to define at a scaled level, as niche content topics are not ingested as much as wider-scale technical learning areas. These niche content groups are just as important, as they allow PS to scale its offerings to new customer groups and remain adaptive in a dynamic tech world.
 
-View time for a given piece of video content is tracked at PS on a daily basis. This offers an opportunity for predictive outcomes to be measured in terms of a course’s view time. In order to scale the outcome across the content library the percentage of total view time that a course is responsible for is used as opposed to raw view time. This ensures that niche content groups aren’t penalized for low viewership and can still receive fair compensation.
+View time for a given piece of video content is tracked at PS on a daily basis. This offers an opportunity for predictive outcomes to be measured in terms of a course’s view time. In order to scale the outcome across the content library the percentage of total view time that a course is responsible for is used as opposed to raw view time. This ensures that niche content groups aren’t penalized for low viewership.
 
 Aggregating the available data at the course level on a month-to-month basis gives a monthly view time percentage (**VT%**) for a given piece of content. This is **the key outcome variable** for our predictive modeling. 
 
@@ -284,7 +284,7 @@ The algorithm is now better tasked to perform relevant view times across course 
 
 ## New Demand Features
 
-Prior to retraining the Content Performance algorithm, an exploratory data analysis was performed to analyze two newly implemented demand features in tandem with the current compensation data that exists within the Content Performance framework. Even in the early stages of data cleaning and collection, it was determined that these internal and external demand features would likely provide huge advancements in the predictive capabilities of the view time model.
+Prior to retraining the Content Performance algorithm, an exploratory data analysis was performed to analyze two newly implemented demand features in tandem with the current content performance data that exists within the Content Performance framework. Even in the early stages of data cleaning and collection, it was determined that these internal and external demand features would likely provide huge advancements in the predictive capabilities of the view time model.
 
 ### Internal Search Count
 
@@ -414,9 +414,9 @@ This generally equivalent spread is potentially explained by content being equal
 
 ## Submodel Performance
 
-In order to implement these new features into the overall model for future viewership projections, submodels needed to be trained and tested for each of these features to see if demand scores and search counts could be accurately predicted individually. If the submodels are unable to accurately predict these demand values, the overall model would be referencing inaccurate values when making viewership predictions, which would skew results when making compensation offers. Therefore, it is vital that these submodels maintain a comfortable level of prediction accuracy.
+In order to implement these new features into the overall model for future viewership projections, submodels needed to be trained and tested for each of these features to see if demand scores and search counts could be accurately predicted individually. If the submodels are unable to accurately predict these demand values, the overall model would be referencing inaccurate values when making viewership predictions. Therefore, it is vital that these submodels maintain a comfortable level of prediction accuracy.
 
-Both the internal and external demand variables were tested with two different models. One model made predictions based on the demand data when it was tagged to level 2 tags (more general tags), and the other model made predictions based on the demand data when it was tagged to level 3 tags (more niche tags).  The two models were then compared and the best model was selected for implementation into the overall demand and compensation model. After this analysis, it was determined that the internal model using level 3 tags and the external demand model using level 2 tags yielded the most reliable results.
+Both the internal and external demand variables were tested with two different models. One model made predictions based on the demand data when it was tagged to level 2 tags (more general tags), and the other model made predictions based on the demand data when it was tagged to level 3 tags (more niche tags).  The two models were then compared and the best model was selected for implementation into the overall demand and content performance model. After this analysis, it was determined that the internal model using level 3 tags and the external demand model using level 2 tags yielded the most reliable results.
 
 ### Internal Demand Submodel
 
@@ -638,7 +638,7 @@ The above visualizations demonstrate that the internal submodel does really well
 
 Additionally, considering the current range of search counts spans between `r min(range(internal$search_cnt))` and `r max(range(internal$search_cnt))`, residuals spanning a few hundred values for these lower search count tags is a comfortable level of accuracy. 
 
-Overall, the model created for the internal search count data with level 3 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final compensation and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
+Overall, the model created for the internal search count data with level 3 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final content performance and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
 
 ### External Demand Submodel
 
@@ -849,7 +849,7 @@ Though demand scores can range from 0 to 1 , the range of demand scores currentl
 
 Despite this, the average difference between predicted and actual demand scores -- known as the residual -- generated by the current model is **`r round(mae(external$demand, external$predictions), 4)`**, which is relatively small considering values range from 0 to 1. This is a very promising level of accuracy considering the model has only been provided with 5 months of observations.
 
-Overall, the model created for the external demand score data with level 2 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final compensation and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
+Overall, the model created for the external demand score data with level 2 tags utilizing XGBoost provides a comfortable level of accuracy for predictions to be used in the final content performance and demand model. Though there are currently limitations, it is expected that this model will only improve as more data becomes available.
 
 ## Algorithmic Selection & Training
 
@@ -1316,7 +1316,7 @@ Currently, there are certain quantiles, namely 0 and 1, where the current model 
 
 The newly implemented features yielded results that aligned with the hypotheses of the Content Analytics team. By utilizing internal PS and external market demand metrics, a model trained on 6 months of available data was able to perform at a level nearly identical to the current model that has trained on data since 2015.
 
-Though there are limitations to this new model, it ultimately performs at a level of accuracy that is comparable to the current model. This new model has been able to replicate trends in ways that match and even outperform the current model, with an average overall error that is only **8.57%** larger. Though there are limitations in predictive accuracy, it is anticipated that as the model trains on more data in the coming months, the new model will see an even bigger increase in predictive accuracy, leading to improved compensation offers. 
+Though there are limitations to this new model, it ultimately performs at a level of accuracy that is comparable to the current model. This new model has been able to replicate trends in ways that match and even outperform the current model, with an average overall error that is only **8.57%** larger. Though there are limitations in predictive accuracy, it is anticipated that as the model trains on more data in the coming months, the new model will see an even bigger increase in predictive accuracy. 
 
 As the new and current models currently perform relatively equally, it is best to continue using the current model as it has trained on substantially more data; however, the new model should continue to be trained and assessed as more data becomes available, as it is anticipated that the new model will eventually surpass the predictive capability of the current model. 
 
